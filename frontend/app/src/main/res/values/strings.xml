@@ -10,5 +10,10 @@
     <string name="email">Email:</string>
     <string name="email_hint">Enter your email</string>
     <string name="password">Password:</string>
-    <string name="password_hint">Enter your username</string>
+    <string name="password_hint">Enter your password</string>
+    <string name="firstname">First Name:</string>
+    <string name="lastname">Last Name:</string>
+    <string name="lastname_hint">Enter your last name</string>
+    <string name="firstname_hint">Enter your first name</string>
+    <string name="bio">Bio</string>
 </resources>

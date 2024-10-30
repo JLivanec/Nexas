@@ -52,9 +52,15 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
         groupsButton.setOnClickListener(this)
         settingsButton.setOnClickListener(this)
 
-        model.myProfile.name
+        updateView()
 
         return view
+    }
+
+    private fun updateView() {
+        binding.profileName.text = model.myProfile.name
+        binding.profileLocation.text = model.myProfile.location
+        binding.bioText.text = model.myProfile.description
     }
 
     // handle click events
