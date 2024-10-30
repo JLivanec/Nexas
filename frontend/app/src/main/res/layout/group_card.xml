@@ -5,15 +5,15 @@
     android:layout_width="match_parent"
     android:layout_height="96dp">
 
-    <ImageView
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/groupImage"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:layout_margin="16dp"
-        app:tint="@color/purple_200"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:shapeAppearanceOverlay="@style/Circular"
         app:srcCompat="@drawable/account" />
 
     <LinearLayout
