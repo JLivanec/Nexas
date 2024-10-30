@@ -150,6 +150,7 @@
             android:layout_width="224dp"
             android:layout_height="64dp"
             android:text="Submit"
+            android:background="@drawable/circular_button"
             android:layout_gravity="center"
             android:layout_margin="32dp" />
 
