@@ -1,21 +1,26 @@
 package com.example.nexas
-
 import com.example.nexas.data.MongoClientConnection
 import com.example.nexas.model.UserProfile
 import kotlinx.coroutines.runBlocking
 import org.mindrot.jbcrypt.BCrypt
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 
 fun main() {
     runBlocking {
         val mongoClientConnection = MongoClientConnection()
 
-        // Test data for user profile
+        // Test data for user profile including additional fields
         val testUser = UserProfile(
-            userID = "123456789",
             uname = "coolest_cat",
             fname = "Cool",
             lname = "Cat",
             email = "lowtemperaturefeline@example.com",
+            location = "Feline City",
+            description = "Just a cool cat living life.",
+            avatar = null, // You can provide a Bitmap if needed
+            background = null, // You can provide a Bitmap if needed
+            age = 5, // Example age
             hashedPassword = BCrypt.hashpw("password123", BCrypt.gensalt())
         )
 
@@ -43,15 +48,15 @@ fun main() {
             println("Error: Invalid credentials were not identified.")
         }
 
-        // Close the MongoDB connection
-        mongoClientConnection.close()
-
         // Test user retrieval
-        val retrievedUser = mongoClientConnection.getUserProfileByUsername("test_user")
+        val retrievedUser = mongoClientConnection.getUserProfileByUsername("coolest_cat")
         if (retrievedUser != null) {
             println("Retrieved user profile: $retrievedUser")
         } else {
             println("User profile not found.")
         }
+
+        // Close the MongoDB connection
+        mongoClientConnection.close()
     }
 }
