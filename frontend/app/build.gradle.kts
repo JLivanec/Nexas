@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    kotlin("plugin.serialization") version "1.8.0"
+    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
@@ -61,6 +63,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
     // Navigation
     implementation(libs.androidx.navigation.fragment.ktx)
@@ -69,4 +72,21 @@ dependencies {
     // Retrofit
     implementation(libs.retrofit)
     implementation (libs.converter.gson)
+
+    // Backend
+    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.2.0")
+    implementation("org.mongodb:bson-kotlinx:5.2.0")
+    implementation("org.slf4j:slf4j-api:1.7.30")
+    implementation("org.slf4j:slf4j-simple:1.7.30")
+    implementation("io.projectreactor:reactor-core:3.4.10")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.7.3")
+    implementation("org.mindrot:jbcrypt:0.4")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.3")
+
+    // Recording
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 }

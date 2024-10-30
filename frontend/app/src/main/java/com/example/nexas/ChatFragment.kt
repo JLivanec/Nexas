@@ -14,6 +14,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -21,11 +22,14 @@ import com.example.nexas.databinding.FragmentChatBinding
 import com.google.android.material.imageview.ShapeableImageView
 
 class ChatFragment : Fragment(), View.OnClickListener {
-    // view binding
+    // View binding
     private var _binding: FragmentChatBinding? = null
     private val binding get() = _binding!!
 
-    // Message Types
+    // ViewModel
+    private val model: ViewModel by activityViewModels()
+
+    // Message types
     private val VIEW_TYPE_SENT = 1
     private val VIEW_TYPE_RECEIVED = 2
 
@@ -37,73 +41,8 @@ class ChatFragment : Fragment(), View.OnClickListener {
     private lateinit var messageRecycler: RecyclerView
     private lateinit var adapter: ChatAdapter
 
-    private var myID: String = "1" // TODO: Pull id from viewmodel
-
-    //TODO: Replace with pull from viewmodel
-    private var group: Group = Group(
-        id = "Temp",
-        name = "Group Temp",
-        avatar = null,
-        location = "Location Temp",
-        description = "Temp description",
-        membersLimit = 10,
-        members = listOf(
-            Member(
-                id = "1",
-                name = "Alice",
-                avatar = null,
-                location = "New York",
-                description = "Loves hiking",
-                background = null
-            ),
-            Member(
-                id = "2",
-                name = "Bob",
-                avatar = null,
-                location = "San Francisco",
-                description = "Tech lover",
-                background = null
-            )
-        ),
-        messages = listOf(
-            Message(
-                id = "1",
-                senderID = "1",
-                videoImage = createSampleBitmap(),
-                videoID = "1"
-            ),
-            Message(
-                id = "2",
-                senderID = "2",
-                videoImage = createSampleBitmap(),
-                videoID = "2"
-            ),
-            Message(
-                id = "3",
-                senderID = "1",
-                videoImage = null,
-                videoID = "3"
-            ),
-            Message(
-                id = "4",
-                senderID = "2",
-                videoImage = createSampleBitmap(),
-                videoID = "4"
-            ),
-            Message(
-                id = "5",
-                senderID = "1",
-                videoImage = null,
-                videoID = "5"
-            )
-        )
-    )
-
-    fun createSampleBitmap(): Bitmap {
-        return Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888).apply {
-            Canvas(this).drawColor(Color.RED)
-        }
-    }
+    private lateinit var myID: String
+    private lateinit var group: Group
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -112,6 +51,10 @@ class ChatFragment : Fragment(), View.OnClickListener {
     ): View {
         _binding = FragmentChatBinding.inflate(inflater, container, false)
         val view = binding.root
+
+        // Retrieve the group ID from arguments
+        val groupId = arguments?.getString("groupId") ?: return view
+        myID = model.myProfile.id
 
         backButton = binding.backButton
         groupHeader = binding.groupHeader
@@ -126,7 +69,14 @@ class ChatFragment : Fragment(), View.OnClickListener {
         adapter = ChatAdapter()
         messageRecycler.layoutManager = LinearLayoutManager(requireContext())
         messageRecycler.adapter = adapter
-        messageRecycler.scrollToPosition(adapter.itemCount - 1)
+
+        model.groups.observe(viewLifecycleOwner) { groups ->
+            group = groups.find { it.id == groupId } ?: return@observe
+            binding.groupAvatar.setImageBitmap(group.avatar)
+            binding.groupName.text = group.name
+            adapter.updateMessages(group.messages)
+            messageRecycler.scrollToPosition(adapter.itemCount - 1)
+        }
 
         return view
     }
@@ -136,7 +86,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
         when (v?.id) {
             backButton.id -> {findNavController().navigateUp()}
             groupHeader.id -> {findNavController().navigate(R.id.action_chatFragment_to_groupProfileFragment)}
-            recordButton.id -> {Log.d("Chat", "Record")} // TODO: Setup recording
+            recordButton.id -> {}
         }
     }
 
@@ -178,10 +128,6 @@ class ChatFragment : Fragment(), View.OnClickListener {
     inner class ChatAdapter : RecyclerView.Adapter<ChatViewHolder>() {
         private var messages = mutableListOf<Message>()
 
-        init {
-            messages = group.messages.toMutableList()
-        }
-
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
             val layoutId = when (viewType) {
                 VIEW_TYPE_SENT -> R.layout.sent_message
@@ -198,6 +144,12 @@ class ChatFragment : Fragment(), View.OnClickListener {
 
         override fun getItemCount(): Int {
             return messages.size
+        }
+
+        fun updateMessages(newMessages: List<Message>) {
+            this.messages.clear()
+            this.messages.addAll(newMessages)
+            notifyDataSetChanged()
         }
 
         override fun getItemViewType(position: Int): Int {

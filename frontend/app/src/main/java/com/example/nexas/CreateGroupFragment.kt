@@ -1,9 +1,8 @@
 package com.example.nexas
 
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
@@ -17,15 +16,21 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentCreateGroupBinding
+import com.google.android.material.imageview.ShapeableImageView
 
 
 class CreateGroupFragment : Fragment(), View.OnClickListener {
-    // view binding
+    // View binding
     private var _binding: FragmentCreateGroupBinding? = null
     private val binding get() = _binding!!
+
+    // ViewModel
+    private val model: ViewModel by activityViewModels()
 
     // UI elements
     private lateinit var homeButton: LinearLayout
@@ -36,6 +41,7 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
     private lateinit var submitButton: Button
 
     private lateinit var groupNameInput: EditText
+    private lateinit var groupAvatarInput: ShapeableImageView
     private lateinit var groupDescriptionInput: EditText
     private lateinit var maxMembersSpinner: Spinner
 
@@ -64,6 +70,7 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
         submitButton.setOnClickListener(this)
 
         groupNameInput = binding.groupNameInput
+        groupAvatarInput = binding.groupAvatarInput
         groupDescriptionInput = binding.groupDescriptionInput
         maxMembersSpinner = binding.maxMembersSpinner
 
@@ -130,11 +137,33 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
     // Create Group
     private fun createGroup() {
         val groupName = groupNameInput.text.toString()
+        groupAvatarInput.isDrawingCacheEnabled = true
+        groupAvatarInput.buildDrawingCache()
+        val groupAvatar = Bitmap.createBitmap(groupAvatarInput.drawingCache)
+        groupAvatarInput.isDrawingCacheEnabled = false
+        groupAvatarInput.destroyDrawingCache()
         val groupDescription = groupDescriptionInput.text.toString()
         val maxMembers = maxMembersSpinner.selectedItem.toString().toInt()
 
-        // TODO: Create group
-        findNavController().navigateUp()
+        val result = model.createGroup(
+            Group(
+                id = "",
+                name = groupName,
+                avatar = groupAvatar,
+                location = "",
+                description = groupDescription,
+                membersLimit = maxMembers,
+                members = listOf(),
+                messages = listOf()
+            )
+        )
+
+        if (result == "") {
+            Toast.makeText(context, "Group created successfully!", Toast.LENGTH_SHORT).show()
+            findNavController().navigateUp()
+        } else {
+            Toast.makeText(context, "Error: $result", Toast.LENGTH_SHORT).show()
+        }
     }
 
     // handle click events

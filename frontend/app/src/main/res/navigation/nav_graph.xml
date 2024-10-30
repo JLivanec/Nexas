@@ -78,7 +78,11 @@
             app:destination="@id/createGroupFragment" />
         <action
             android:id="@+id/action_groupsFragment_to_chatFragment"
-            app:destination="@id/chatFragment" />
+            app:destination="@id/chatFragment">
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+        </action>
     </fragment>
     <fragment
         android:id="@+id/settingsFragment"
