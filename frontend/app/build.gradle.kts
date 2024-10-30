@@ -32,15 +32,19 @@ android {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
         viewBinding = true
+    }
+    packagingOptions {
+        exclude("META-INF/native-image/native-image.properties")
+        exclude("META-INF/native-image/reflect-config.json")
     }
 }
 
@@ -74,8 +78,8 @@ dependencies {
     implementation (libs.converter.gson)
 
     // Backend
-    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.2.0")
-    implementation("org.mongodb:bson-kotlinx:5.2.0")
+    implementation(libs.mongodb.driver.kotlin.coroutine)
+    implementation(libs.bson.kotlinx)
     implementation("org.slf4j:slf4j-api:1.7.30")
     implementation("org.slf4j:slf4j-simple:1.7.30")
     implementation("io.projectreactor:reactor-core:3.4.10")
