@@ -19,6 +19,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nexas.databinding.FragmentChatBinding
 import com.google.android.material.imageview.ShapeableImageView
+import com.example.nexas.model.*
+import java.time.Instant
 
 class ChatFragment : Fragment(), View.OnClickListener {
     // view binding
@@ -48,53 +50,73 @@ class ChatFragment : Fragment(), View.OnClickListener {
         description = "Temp description",
         membersLimit = 10,
         members = listOf(
-            Member(
+            UserProfile(
+                uname = "aliceinwonderland",
                 id = "1",
-                name = "Alice",
+                fname = "Alice",
+                lname = "jones",
+                email = "ali@cox.net",
                 avatar = null,
                 location = "New York",
                 description = "Loves hiking",
-                background = null
+                background = null,
+                age = 35,
+                hashedPassword = "supersecurepassword"
             ),
-            Member(
+            UserProfile(
+                uname = "billybob",
                 id = "2",
-                name = "Bob",
+                fname = "Bob",
+                lname = "the builder",
+                email = "billybob@canada.usa",
                 avatar = null,
                 location = "San Francisco",
                 description = "Tech lover",
-                background = null
+                background = null,
+                age = 69,
+                hashedPassword = "i like milk"
             )
         ),
         messages = listOf(
             Message(
                 id = "1",
                 senderID = "1",
+                groupID = "1",
                 videoImage = createSampleBitmap(),
-                videoID = "1"
+                videoID = "1",
+                timestamp = Instant.now()
             ),
             Message(
                 id = "2",
                 senderID = "2",
+                groupID = "1",
                 videoImage = createSampleBitmap(),
-                videoID = "2"
+                videoID = "2",
+                timestamp = Instant.now()
             ),
             Message(
                 id = "3",
                 senderID = "1",
+                groupID = "2",
                 videoImage = null,
-                videoID = "3"
+                videoID = "3",
+                timestamp = Instant.now()
             ),
             Message(
                 id = "4",
                 senderID = "2",
+                groupID = "2",
                 videoImage = createSampleBitmap(),
-                videoID = "4"
+                videoID = "4",
+                timestamp = Instant.now()
             ),
             Message(
                 id = "5",
                 senderID = "1",
+                groupID = "3",
                 videoImage = null,
-                videoID = "5"
+                videoID = "5",
+                timestamp = Instant.now()
             )
         )
     )
@@ -152,7 +174,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
         }
 
         fun bind(message: Message) {
-            val member = group.members.find { it.id == message.senderID }
+            val member = group.members?.find { it.id == message.senderID }
 
             if (member != null) {
                 member.avatar?.let { avatarBitmap ->
@@ -179,7 +201,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
         private var messages = mutableListOf<Message>()
 
         init {
-            messages = group.messages.toMutableList()
+            messages = group.messages?.toMutableList() ?: mutableListOf<Message>()
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {

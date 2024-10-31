@@ -22,6 +22,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentCreateGroupBinding
 import com.google.android.material.imageview.ShapeableImageView
+import com.example.nexas.model.*
 
 
 class CreateGroupFragment : Fragment(), View.OnClickListener {

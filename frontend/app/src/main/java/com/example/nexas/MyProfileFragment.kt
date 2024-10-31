@@ -58,7 +58,7 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
     }
 
     private fun updateView() {
-        binding.profileName.text = model.myProfile.name
+        binding.profileName.text = model.myProfile.fname
         binding.profileLocation.text = model.myProfile.location
         binding.bioText.text = model.myProfile.description
     }

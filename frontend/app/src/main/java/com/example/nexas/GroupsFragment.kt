@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nexas.databinding.FragmentGroupsBinding
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.example.nexas.model.*
 
 class GroupsFragment : Fragment(), View.OnClickListener {
     // View binding
@@ -71,7 +72,7 @@ class GroupsFragment : Fragment(), View.OnClickListener {
         groupsRecycler.adapter = adapter
 
         // Observe the groups LiveData
-        model.groups.observe(viewLifecycleOwner, Observer { groups ->
+        model.groups.observe(viewLifecycleOwner, Observer { groups: List<Group> ->
             myGroups = groups
             adapter.updateGroups(myGroups)
         })
@@ -110,7 +111,7 @@ class GroupsFragment : Fragment(), View.OnClickListener {
                 groupImage.setImageBitmap(group.avatar)
             groupName.text = group.name
             groupLocation.text = group.location
-            groupMembersLimit.text = "${group.members.size}/${group.membersLimit}"
+            groupMembersLimit.text = "${group.members?.size}/${group.membersLimit}"
         }
     }
 
