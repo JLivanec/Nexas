@@ -6,6 +6,7 @@ data class Member(
     var id: String,
     var name: String,
     var avatar: Bitmap?,
+    var age: Int,
     var location: String,
     var description: String,
     var background: Bitmap?

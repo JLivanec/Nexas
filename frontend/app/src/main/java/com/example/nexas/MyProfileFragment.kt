@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentMyProfileBinding
 
@@ -17,6 +18,9 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
     // view binding
     private var _binding: FragmentMyProfileBinding? = null
     private val binding get() = _binding!!
+
+    // ViewModel
+    private val model: ViewModel by activityViewModels()
 
     // UI elements
     private lateinit var homeButton: LinearLayout
@@ -48,7 +52,15 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
         groupsButton.setOnClickListener(this)
         settingsButton.setOnClickListener(this)
 
+        updateView()
+
         return view
+    }
+
+    private fun updateView() {
+        binding.profileName.text = model.myProfile.name
+        binding.profileLocation.text = model.myProfile.location
+        binding.bioText.text = model.myProfile.description
     }
 
     // handle click events

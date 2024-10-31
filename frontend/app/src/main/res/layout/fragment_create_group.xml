@@ -60,14 +60,14 @@
             android:background="@null"
             android:layout_gravity="center" />
 
-        <ImageButton
-            android:id="@+id/imageButton"
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/groupAvatarInput"
             android:layout_width="128dp"
             android:layout_height="128dp"
             android:background="@null"
-            android:scaleType="fitXY"
-            android:src="@drawable/account"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            app:shapeAppearanceOverlay="@style/Circular"
+            app:srcCompat="@drawable/account" />
 
         <TextView
             android:id="@+id/groupNameLabel"
@@ -150,6 +150,7 @@
             android:layout_width="224dp"
             android:layout_height="64dp"
             android:text="Submit"
+            android:background="@drawable/circular_button"
             android:layout_gravity="center"
             android:layout_margin="32dp" />
 

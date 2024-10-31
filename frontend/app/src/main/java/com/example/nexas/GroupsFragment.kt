@@ -10,18 +10,21 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nexas.databinding.FragmentGroupsBinding
-import com.example.nexas.model.Group
-import com.example.nexas.model.UserProfile
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class GroupsFragment : Fragment(), View.OnClickListener {
-    // view binding
+    // View binding
     private var _binding: FragmentGroupsBinding? = null
     private val binding get() = _binding!!
+
+    // ViewModel
+    private val model: ViewModel by activityViewModels()
 
     // UI elements
     private lateinit var homeButton: LinearLayout
@@ -32,47 +35,7 @@ class GroupsFragment : Fragment(), View.OnClickListener {
 
     private lateinit var groupsRecycler: RecyclerView
     private lateinit var adapter: GroupAdapter
-
-    //TODO: Remove temporary array
-    private var tempGroups: List<Group> = List(5) {
-        Group(
-            id = "${it + 1}",
-            name = "Group ${it + 1}",
-            avatar = null,
-            location = "Location ${it + 1}",
-            description = "Temp description",
-            membersLimit = 10,
-            members = listOf(
-                UserProfile(
-                    id = "1",
-                    uname = "alice_in_wonderaland",
-                    fname = "Alice",
-                    lname = "Jones",
-                    email = "123@456",
-                    age = 69,
-                    hashedPassword = "boo",
-                    avatar = null,
-                    location = "New York",
-                    description = "Loves hiking",
-                    background = null
-                ),
-                UserProfile(
-                    id = "2",
-                    uname = "Billy_bob",
-                    fname = "Bob",
-                    lname = "Jones",
-                    email = "billybobjones@costcomember.usa",
-                    age = 90,
-                    hashedPassword = "I've always had a crush on alice",
-                    avatar = null,
-                    location = "San Francisco",
-                    description = "Tech lover",
-                    background = null
-                )
-            ),
-            messages = listOf()
-        )
-    }
+    private lateinit var myGroups: List<Group>
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -107,6 +70,11 @@ class GroupsFragment : Fragment(), View.OnClickListener {
         groupsRecycler.layoutManager = LinearLayoutManager(requireContext())
         groupsRecycler.adapter = adapter
 
+        // Observe the groups LiveData
+        model.groups.observe(viewLifecycleOwner, Observer { groups ->
+            myGroups = groups
+            adapter.updateGroups(myGroups)
+        })
 
         return view
     }
@@ -131,13 +99,15 @@ class GroupsFragment : Fragment(), View.OnClickListener {
 
         init {
             itemView.setOnClickListener {
-                // TODO: Change location to chat screen and pass group to move to
-                findNavController().navigate(R.id.action_groupsFragment_to_chatFragment)
+                val group = myGroups[adapterPosition] // Get the selected group
+                val action = GroupsFragmentDirections.actionGroupsFragmentToChatFragment(group.id)
+                findNavController().navigate(action)
             }
         }
 
         fun bind(group: Group) {
-//            groupImage.setImageBitmap(group.avatar)
+            if (group.avatar != null)
+                groupImage.setImageBitmap(group.avatar)
             groupName.text = group.name
             groupLocation.text = group.location
             groupMembersLimit.text = "${group.members.size}/${group.membersLimit}"
@@ -147,12 +117,6 @@ class GroupsFragment : Fragment(), View.OnClickListener {
     // Group Adapter
     inner class GroupAdapter : RecyclerView.Adapter<GroupViewHolder>() {
         private var groups = mutableListOf<Group>()
-        private var searchQuery = ""
-
-        init {
-            groups = tempGroups.toMutableList()
-            // TODO: Get groups from DB
-        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
             val itemView = LayoutInflater.from(parent.context).inflate(R.layout.group_card, parent, false)
@@ -167,8 +131,13 @@ class GroupsFragment : Fragment(), View.OnClickListener {
             return groups.size
         }
 
+        fun updateGroups(newGroups: List<Group>) {
+            this.groups.clear()
+            this.groups.addAll(newGroups)
+            notifyDataSetChanged()
+        }
+
         fun filterGroups(query: String) {
-            this.searchQuery = query
             // TODO: Search Groups
         }
     }

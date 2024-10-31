@@ -18,11 +18,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nexas.databinding.FragmentChatBinding
-import com.example.nexas.model.Group
-import com.example.nexas.model.Message
-import com.example.nexas.model.UserProfile
 import com.google.android.material.imageview.ShapeableImageView
-import java.time.Instant
 
 class ChatFragment : Fragment(), View.OnClickListener {
     // view binding
@@ -52,27 +48,17 @@ class ChatFragment : Fragment(), View.OnClickListener {
         description = "Temp description",
         membersLimit = 10,
         members = listOf(
-            UserProfile(
+            Member(
                 id = "1",
-                uname = "alice_in_wonderaland",
-                fname = "Alice",
-                lname = "Jones",
-                email = "123@456",
-                age = 69,
-                hashedPassword = "boo",
+                name = "Alice",
                 avatar = null,
                 location = "New York",
                 description = "Loves hiking",
                 background = null
             ),
-            UserProfile(
+            Member(
                 id = "2",
-                uname = "Billy_bob",
-                fname = "Bob",
-                lname = "Jones",
-                email = "billybobjones@costcomember.usa",
-                age = 90,
-                hashedPassword = "I've always had a crush on alice",
+                name = "Bob",
                 avatar = null,
                 location = "San Francisco",
                 description = "Tech lover",
@@ -83,42 +69,32 @@ class ChatFragment : Fragment(), View.OnClickListener {
             Message(
                 id = "1",
                 senderID = "1",
-                groupID = "1",
                 videoImage = createSampleBitmap(),
-                videoID = "1",
-                timestamp = Instant.now()
+                videoID = "1"
             ),
             Message(
                 id = "2",
                 senderID = "2",
-                groupID = "2",
                 videoImage = createSampleBitmap(),
-                videoID = "2",
-                timestamp = Instant.now()
+                videoID = "2"
             ),
             Message(
                 id = "3",
-                senderID = "3",
-                groupID = "3",
+                senderID = "1",
                 videoImage = null,
-                videoID = "3",
-                timestamp = Instant.now()
+                videoID = "3"
             ),
             Message(
                 id = "4",
                 senderID = "2",
-                groupID = "2",
                 videoImage = createSampleBitmap(),
-                videoID = "4",
-                timestamp = Instant.now()
+                videoID = "4"
             ),
             Message(
                 id = "5",
                 senderID = "1",
-                groupID = "1",
                 videoImage = null,
-                videoID = "5",
-                timestamp = Instant.now()
+                videoID = "5"
             )
         )
     )
