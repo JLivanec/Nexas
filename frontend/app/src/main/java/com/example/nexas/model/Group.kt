@@ -1,4 +1,4 @@
-package com.example.nexas
+package com.example.nexas.model
 
 import android.graphics.Bitmap
 
@@ -9,6 +9,6 @@ data class Group(
     var location: String,
     var description: String,
     var membersLimit: Int,
-    var members: List<Member>,
+    var members: List<UserProfile>,
     var messages: List<Message>
 )
