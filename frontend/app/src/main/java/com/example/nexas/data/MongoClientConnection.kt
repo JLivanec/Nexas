@@ -91,7 +91,7 @@ class MongoClientConnection {
         }
     }
 
-    suspend fun validateCredentials(username: String, password: String): Boolean {
+    suspend fun validateCredentials(username: String, password: String): UserProfile? {
         // Find user by username
         val userDocument = userCollection.find(eq("uname", username)).firstOrNull()
 
@@ -111,7 +111,10 @@ class MongoClientConnection {
             )
         }
         // Check if user is not null and password matches
-        return user != null && BCrypt.checkpw(password, user.hashedPassword)
+        return if (user != null && BCrypt.checkpw(password, user.hashedPassword))
+            user
+        else
+            null
     }
 
     suspend fun getUserProfileByUsername(username: String): UserProfile? {

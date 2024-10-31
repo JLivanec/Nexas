@@ -110,23 +110,23 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
         // Set up spinner
         val adapter = object : ArrayAdapter<Int>(requireContext(), android.R.layout.simple_spinner_item, maxMembersOptions) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val view = super.getView(position, convertView, parent)
-                (view as TextView).apply {
+                val tView = super.getView(position, convertView, parent)
+                (tView as TextView).apply {
                     setTextColor(Color.WHITE)
                     setBackgroundColor(Color.TRANSPARENT)
                     gravity = Gravity.CENTER
                 }
-                return view
+                return tView
             }
 
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val view = super.getDropDownView(position, convertView, parent)
-                (view as TextView).apply {
+                val tView = super.getDropDownView(position, convertView, parent)
+                (tView as TextView).apply {
                     setTextColor(Color.WHITE)
                     setBackgroundColor(Color.TRANSPARENT)
                     gravity = Gravity.CENTER
                 }
-                return view
+                return tView
             }
         }
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)

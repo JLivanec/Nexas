@@ -9,4 +9,9 @@
         <item name="cornerSize">10%</item>
     </style>
 
+    <style name="RoundedBottom">
+        <item name="cornerSizeBottomLeft">5% </item>
+        <item name="cornerSizeBottomRight">5% </item>
+    </style>
+
 </resources>

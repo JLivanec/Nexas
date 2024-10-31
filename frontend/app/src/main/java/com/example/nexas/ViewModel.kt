@@ -7,15 +7,21 @@ import android.provider.MediaStore
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
+import com.example.nexas.data.MongoClientConnection
 import com.example.nexas.model.*
+import kotlinx.coroutines.launch
+import org.mindrot.jbcrypt.BCrypt
 
 class ViewModel : ViewModel() {
+
+    private var db = MongoClientConnection()
     lateinit var myProfile: UserProfile
     private var _groups = MutableLiveData<List<Group>>(emptyList())
     val groups: LiveData<List<Group>> get() = _groups
 
     init {
-        fetchMyProfile()
+//        fetchMyProfile()
         fetchGroups()
     }
 
@@ -235,11 +241,6 @@ class ViewModel : ViewModel() {
         _groups.value = fakeGroups
     }
 
-    fun updateProfile(profile: UserProfile) {
-        // TODO: Save My Profile
-        myProfile = profile
-    }
-
     fun createGroup(group: Group): String {
         // TODO: Replace with making group in DB
         val newGroup = group.copy(id = "new${_groups.value!!.size + 1}",
@@ -259,4 +260,65 @@ class ViewModel : ViewModel() {
     fun sendVideo(video: MediaStore.Video) {
         // TODO: Send video
     }
+
+    suspend fun createAccount(profile: UserProfile): String {
+        var error = validateProfile(profile)
+
+        if (error != "")
+            return error
+
+        if (!db.insertUserProfile(profile))
+            error = "Server Error: Please try again"
+
+        return error
+    }
+
+    suspend fun autoLogin(): Boolean {
+        if (myProfile.hashedPassword != "") {
+            val tempProfile = db.validateCredentials(myProfile.uname, myProfile.hashedPassword)
+                ?: return false
+
+            myProfile = tempProfile
+            return true
+        }
+        return false
+    }
+
+    suspend fun login(uname: String, hashedPassword: String): String {
+        val tempProfile = db.validateCredentials(uname, hashedPassword)
+            ?: return "Error: Incorrect Username or Password"
+
+        myProfile = tempProfile
+        return ""
+    }
+
+//    fun updateProfile(profile: UserProfile) {
+//        // TODO: Save My Profile
+//        myProfile = profile
+//    }
+
+    private suspend fun validateProfile(profile: UserProfile): String {
+        if (profile.fname == "" ||
+            profile.fname.contains(" "))
+            return "Error: Invalid First Name (No spaces allowed)"
+
+        if (profile.lname == "" ||
+            profile.lname.contains(" "))
+            return "Error: Invalid Last Name (No spaces allowed)"
+
+        if (profile.uname == "" ||
+            profile.uname.contains(" "))
+            return "Error: Invalid Username (No spaces allowed)"
+
+        if (profile.email == "" ||
+            !profile.email.contains(".*@.*") ||
+            profile.email.contains(" "))
+            return "Error: Invalid Email"
+
+        if (db.getUserProfileByUsername(profile.uname) != null)
+            return "Error: An account with this username already exists"
+
+        return ""
+    }
+
 }
