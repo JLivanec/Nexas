@@ -9,6 +9,6 @@ data class Group(
     var location: String,
     var description: String,
     var membersLimit: Int,
-    var members: List<UserProfile>,
-    var messages: List<Message>
+    var members: List<UserProfile>?,
+    var messages: List<Message>?
 )

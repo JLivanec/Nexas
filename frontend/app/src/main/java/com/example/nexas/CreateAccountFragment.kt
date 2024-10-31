@@ -11,6 +11,8 @@ import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentCreateAccountBinding
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import org.mindrot.jbcrypt.BCrypt
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 
 class CreateAccountFragment : Fragment() {
@@ -18,6 +20,7 @@ class CreateAccountFragment : Fragment() {
     // View binding
     private var _binding: FragmentCreateAccountBinding? = null
     private val binding get() = _binding!!
+    private lateinit var db: MongoClientConnection
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,7 +29,7 @@ class CreateAccountFragment : Fragment() {
     ): View {
         _binding = FragmentCreateAccountBinding.inflate(inflater, container, false)
 
-        val db = MongoClientConnection()
+        db = MongoClientConnection()
 
         // Set up UI elements using binding
         binding.accCreateButton.setOnClickListener {
@@ -45,19 +48,28 @@ class CreateAccountFragment : Fragment() {
                 validInputs = false
                 error_msg = "Please fill out all fields"
             }
-            if (!eml.contains(".*@.*")) {
+            if (!eml.contains(".*@.*") || eml.contains(" ")) {
                 validInputs = false
                 error_msg = "Invalid Email Input"
             }
-            //TODO: duplicate entry checks
-            //if (db.getUserProfileByUsername(uname) != null) {
-            //    validInputs = false
-            //   error_msg = "An account with this username already exists!"
-            //}
+            if (uname.contains(" ")) {
+                error_msg = "Username may not contain spaces"
+            }
+            if (fname.contains(" ") || lname.contains(" ")) {
+                error_msg = "Name cannot contain spaces"
+            }
+            lifecycleScope.launch {
+                if (db.getUserProfileByUsername(uname) != null) {
+                    validInputs = false
+                    error_msg = "An account with this username already exists"
+                }
+            }
+
             //TODO: Prompt Age
 
             if (!validInputs) {
                 Toast.makeText(context, error_msg, Toast.LENGTH_SHORT).show()
+                db.close()
             } else {
                 val newProfile = UserProfile(
                     uname = uname,
@@ -72,27 +84,31 @@ class CreateAccountFragment : Fragment() {
                     hashedPassword = pword
                 )
 
-                createAccount(newProfile, db)
-                Toast.makeText(context, "Account Created successfully", Toast.LENGTH_SHORT).show()
+                if (createAccount(newProfile, db)) {
+                    Toast.makeText(context, "Account Created successfully", Toast.LENGTH_SHORT).show()
+                }
+                else {
+                    Toast.makeText(context, "Something went wrong...", Toast.LENGTH_SHORT).show()
+                }
+
+                db.close()
             }
         }
 
         return binding.root
     }
 
-    private fun createAccount(profile: UserProfile, connection: MongoClientConnection) {
-        //TODO: insert profile into db (suspend function)
-        //val success = connection.insertUserProfile(profile)
-//        if(success) {
-//            println("Account created successfully")
-//        }
-//        else {
-//            println("Account was unable to be added to the database!")
-//        }
+    private fun createAccount(profile: UserProfile, connection: MongoClientConnection): Boolean {
+        var success = false
+        lifecycleScope.launch {
+            success = connection.insertUserProfile(profile)
+        }
+        return success
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        db.close()
     }
 }

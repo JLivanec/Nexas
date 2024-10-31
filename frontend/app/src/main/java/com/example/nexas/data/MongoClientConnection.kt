@@ -19,6 +19,8 @@ import org.bson.codecs.configuration.CodecRegistry
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 import kotlinx.coroutines.flow.toList
+import org.bson.types.ObjectId
+
 
 class MongoClientConnection {
 
@@ -138,6 +140,32 @@ class MongoClientConnection {
         }
     }
 
+    suspend fun getUserProfileByID(id: String): UserProfile? {
+        // Find user by ID as a Document
+        val userDocument = userCollection.find(eq("_id", ObjectId(id))).firstOrNull()
+
+        // Convert Document to UserProfile if found
+        return userDocument?.let {
+            UserProfile(
+                id = it.getString("id"),
+                uname = it.getString("uname"),
+                fname = it.getString("fname"),
+                lname = it.getString("lname"),
+                email = it.getString("email"),
+                location = it.getString("location"),
+                description = it.getString("description"),
+                avatar = it.get("avatar", ByteArray::class.java)?.let { byteArray ->
+                    BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                },
+                background = it.get("background", ByteArray::class.java)?.let { byteArray ->
+                    BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                },
+                age = it.getInteger("age") ?: 0,
+                hashedPassword = it.getString("hashedPassword") ?: ""
+            )
+        }
+    }
+
     // Function to write a message to the database
     suspend fun insertMessage(message: Message): Boolean {
         return try {
@@ -167,7 +195,7 @@ class MongoClientConnection {
     // Function to retrieve all messages by groupID
     suspend fun getMessagesByGroupID(groupID: String): List<Message> {
         return try {
-            messageCollection.find(eq("groupID", groupID)).toList().map { document ->
+            messageCollection.find(eq("groupID", ObjectId(groupID))).toList().map { document ->
                 Message(
                     id = document.getString("id"),
                     senderID = document.getString("senderID"),
@@ -185,10 +213,29 @@ class MongoClientConnection {
         }
     }
 
+    suspend fun getMessageByID(id: String): Message? {
+        // Find message by ID as a Document
+        val messageDocument = messageCollection.find(eq("_id", ObjectId(id))).firstOrNull()
+
+        // Convert Document to Message if found
+        return messageDocument?.let {
+            Message(
+                id = it.getString("id"),
+                senderID = it.getString("senderID"),
+                groupID = it.getString("groupID"),
+                videoImage = it.get("videoImage", ByteArray::class.java)?.let { byteArray ->
+                    BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                },
+                videoID = it.getString("videoID")
+            )
+        }
+    }
+
+
     // Function to remove a message by ID
-    suspend fun deleteMessageByID(messageID: String): Boolean {
+    suspend fun deleteMessageByID(id: String): Boolean {
         return try {
-            val result = messageCollection.deleteOne(eq("id", messageID))
+            val result = messageCollection.deleteOne(eq("_id", ObjectId(id)))
             result.deletedCount > 0
         } catch (e: Exception) {
             e.printStackTrace()
@@ -205,5 +252,164 @@ class MongoClientConnection {
         val stream = ByteArrayOutputStream()
         this.compress(Bitmap.CompressFormat.PNG, 100, stream)
         return stream.toByteArray()
+    }
+
+    // Function to insert a new group into the database
+    suspend fun insertGroup(group: Group): Boolean {
+        return try {
+            // Create a Document for the group, handling the avatar as ByteArray
+            val document = Document()
+                .append("name", group.name)
+                .append("avatar", group.avatar?.toByteArray()) // Convert Bitmap to ByteArray
+                .append("location", group.location)
+                .append("description", group.description)
+                .append("membersLimit", group.membersLimit)
+                .append("members", group.members?.map { it.id } ?: emptyList<UserProfile>()) // Store only the IDs
+                .append("messages", group.messages?.map { it.id } ?: emptyList<Message>()) // Store only the IDs
+
+            groupCollection.insertOne(document)
+            true // Insertion was successful
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false // Insertion failed
+        }
+    }
+
+    // Function to get all groups by name
+    suspend fun getGroupByName(name: String): List<Group> {
+        return try {
+            val groupDocuments = groupCollection.find(eq("name", name)).toList() // Find all groups matching the name
+
+            // Convert the Document list to Group objects
+            groupDocuments.map { document ->
+                Group(
+                    id = document.getObjectId("_id").toHexString(), // Convert ObjectId to String
+                    name = document.getString("name"),
+                    avatar = document.get("avatar", ByteArray::class.java)?.let { byteArray ->
+                        BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                    },
+                    location = document.getString("location"),
+                    description = document.getString("description"),
+                    membersLimit = document.getInteger("membersLimit"),
+                    members = document.getList("members", String::class.java).map { memberId ->
+                        // Fetch UserProfile for each member ID (implement this method as needed)
+                        getUserProfileByID(memberId) ?: UserProfile(
+                            id = memberId, // Fallback ID
+                            uname = "Unknown", // Fallback uname
+                            fname = "Unknown", // Fallback fname
+                            lname = "Unknown", // Fallback lname
+                            email = "unknown@example.com", // Fallback email
+                            location = "Unknown", // Fallback location
+                            description = "User profile not found.", // Fallback description
+                            avatar = null, // No avatar for unknown user
+                            background = null, // No background for unknown user
+                            age = 0, // Fallback age
+                            hashedPassword = "" // No hashed password for unknown user
+                        ) // Fallback if user not found
+                    },
+                    messages = document.getList("messages", String::class.java).map { messageId ->
+                        // Fetch Message for each message ID (implement this method as needed)
+                        getMessageByID(messageId) ?: Message(
+                            id = messageId, // Fallback ID
+                            senderID = "Unknown", // Fallback senderID
+                            groupID = "Unknown", // Fallback groupID
+                            videoID = "Unknown", // Fallback videoID
+                            timestamp = Instant.now(), // Fallback timestamp
+                            videoImage = null // No videoImage for unknown message
+                        ) // Fallback if message not found
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList() // Return an empty list in case of error
+        }
+    }
+
+    // Function to get a group by ID
+    suspend fun getGroupById(id: String): Group? {
+        return try {
+            val groupDocument = groupCollection.find(eq("_id", ObjectId(id))).firstOrNull() // Find group by ID
+
+            // Convert Document to Group if found
+            groupDocument?.let {
+                Group(
+                    id = it.getObjectId("_id").toHexString(), // Convert ObjectId to String
+                    name = it.getString("name"),
+                    avatar = it.get("avatar", ByteArray::class.java)?.let { byteArray ->
+                        BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                    },
+                    location = it.getString("location"),
+                    description = it.getString("description"),
+                    membersLimit = it.getInteger("membersLimit"),
+                    members = it.getList("members", String::class.java).map { memberId ->
+                        // Fetch UserProfile for each member ID
+                        getUserProfileByID(memberId) ?: UserProfile(
+                            id = memberId, // Fallback ID
+                            uname = "Unknown", // Fallback uname
+                            fname = "Unknown", // Fallback fname
+                            lname = "Unknown", // Fallback lname
+                            email = "unknown@example.com", // Fallback email
+                            location = "Unknown", // Fallback location
+                            description = "User profile not found.", // Fallback description
+                            avatar = null, // No avatar for unknown user
+                            background = null, // No background for unknown user
+                            age = 0, // Fallback age
+                            hashedPassword = "" // No hashed password for unknown user
+                        ) // Fallback if user not found
+                    },
+                    messages = it.getList("messages", String::class.java).map { messageId ->
+                        // Fetch Message for each message ID
+                        getMessageByID(messageId) ?: Message(
+                            id = messageId, // Fallback ID
+                            senderID = "Unknown", // Fallback senderID
+                            groupID = "Unknown", // Fallback groupID
+                            videoID = "Unknown", // Fallback videoID
+                            timestamp = Instant.now(), // Fallback timestamp
+                            videoImage = null // No videoImage for unknown message
+                        ) // Fallback if message not found
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null // Return null if not found
+        }
+    }
+
+    suspend fun addMemberToGroup(groupId: String, userProfile: UserProfile): Boolean {
+        return try {
+            // Update the group's members list by adding the new member's ID
+            val result = groupCollection.updateOne(
+                eq("_id", ObjectId(groupId)),
+                Document("\$addToSet", Document("members", userProfile.id))
+            )
+            result.modifiedCount > 0
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    // Function to send a message to a group
+    suspend fun sendMessage(groupId: String, message: Message): Boolean {
+        return try {
+            // Insert the message into the message collection
+            val insertSuccess = insertMessage(message)
+
+            // If the message was inserted successfully, update the group's messages list
+            if (insertSuccess) {
+                val result = groupCollection.updateOne(
+                    eq("_id", ObjectId(groupId)),
+                    Document("\$addToSet", Document("messages", message.id)) // Add message ID to messages
+                )
+                result.modifiedCount > 0
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 }
