@@ -1,27 +1,21 @@
 package com.example.nexas
 
-import android.app.AlertDialog
 import android.graphics.PorterDuff
-import android.graphics.Typeface
 import android.os.Bundle
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.BackgroundColorSpan
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import androidx.core.content.res.ResourcesCompat
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nexas.databinding.FragmentGroupsBinding
+import com.example.nexas.model.Group
+import com.example.nexas.model.UserProfile
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class GroupsFragment : Fragment(), View.OnClickListener {
@@ -49,17 +43,27 @@ class GroupsFragment : Fragment(), View.OnClickListener {
             description = "Temp description",
             membersLimit = 10,
             members = listOf(
-                Member(
+                UserProfile(
                     id = "1",
-                    name = "Alice",
+                    uname = "alice_in_wonderaland",
+                    fname = "Alice",
+                    lname = "Jones",
+                    email = "123@456",
+                    age = 69,
+                    hashedPassword = "boo",
                     avatar = null,
                     location = "New York",
                     description = "Loves hiking",
                     background = null
                 ),
-                Member(
+                UserProfile(
                     id = "2",
-                    name = "Bob",
+                    uname = "Billy_bob",
+                    fname = "Bob",
+                    lname = "Jones",
+                    email = "billybobjones@costcomember.usa",
+                    age = 90,
+                    hashedPassword = "I've always had a crush on alice",
                     avatar = null,
                     location = "San Francisco",
                     description = "Tech lover",
