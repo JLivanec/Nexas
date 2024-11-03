@@ -12,11 +12,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.fragment.navArgs
 import com.example.nexas.databinding.FragmentLoginBinding
-import com.example.nexas.model.UserProfile
 import kotlinx.coroutines.launch
-import org.mindrot.jbcrypt.BCrypt
 
 class LoginFragment : Fragment(), View.OnClickListener {
 
@@ -30,7 +27,7 @@ class LoginFragment : Fragment(), View.OnClickListener {
     // UI elements
     private lateinit var backButton: ImageButton
     private lateinit var loginButton: Button
-    private lateinit var usernameInput: EditText
+    private lateinit var emailInput: EditText
     private lateinit var passwordInput: EditText
 
     override fun onCreateView(
@@ -42,7 +39,7 @@ class LoginFragment : Fragment(), View.OnClickListener {
 
         backButton = binding.backButton
         loginButton = binding.loginButton
-        usernameInput = binding.usernameInput
+        emailInput = binding.emailInput
         passwordInput = binding.passwordInput
 
         backButton.setOnClickListener(this)
@@ -63,8 +60,8 @@ class LoginFragment : Fragment(), View.OnClickListener {
     private fun login() {
         viewLifecycleOwner.lifecycleScope.launch {
             val error = model.login(
-                usernameInput.text.toString(),
-                BCrypt.hashpw(passwordInput.text.toString(), BCrypt.gensalt())
+                emailInput.text.toString(),
+                passwordInput.text.toString()
             )
 
             if (error == "") {

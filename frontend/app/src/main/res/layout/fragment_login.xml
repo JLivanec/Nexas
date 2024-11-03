@@ -53,18 +53,18 @@
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/usernameLabel"
+            android:id="@+id/emailLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:background="@null"
-            android:text="@string/username"
+            android:text="@string/email"
             android:textColor="@color/white"
             android:textSize="20sp" />
 
         <EditText
-            android:id="@+id/usernameInput"
+            android:id="@+id/emailInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="16dp"
@@ -73,7 +73,7 @@
             android:layout_marginBottom="16dp"
             android:background="@drawable/rounded_background"
             android:backgroundTint="@color/box_background"
-            android:hint="@string/username_hint"
+            android:hint="@string/email_hint"
             android:maxLines="1"
             android:padding="12dp"
             android:textColor="@color/white"

@@ -13,4 +13,7 @@
     <color name="search">#FFECE6F0</color>
     <color name="search_hint">#FF49454F</color>
     <color name="mint">#FF50BB88</color>
+    <color name="red">#FFD93D3D</color>
+    <color name="text_shadow">#7F000000</color>
+    <color name="text_shadow_white">#FFFFFF</color>
 </resources>

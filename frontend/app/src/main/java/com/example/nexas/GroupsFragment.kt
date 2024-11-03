@@ -1,5 +1,6 @@
 package com.example.nexas
 
+import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -10,14 +11,18 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.nexas.databinding.FragmentGroupsBinding
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.example.nexas.model.*
+import kotlinx.coroutines.launch
 
 class GroupsFragment : Fragment(), View.OnClickListener {
     // View binding
@@ -72,6 +77,9 @@ class GroupsFragment : Fragment(), View.OnClickListener {
         groupsRecycler.adapter = adapter
 
         // Observe the groups LiveData
+        viewLifecycleOwner.lifecycleScope.launch {
+            model.getGroups()
+        }
         model.groups.observe(viewLifecycleOwner, Observer { groups: List<Group> ->
             myGroups = groups
             adapter.updateGroups(myGroups)
@@ -107,8 +115,14 @@ class GroupsFragment : Fragment(), View.OnClickListener {
         }
 
         fun bind(group: Group) {
-            if (group.avatar != null)
-                groupImage.setImageBitmap(group.avatar)
+            if (group.avatar.isNotBlank()) {
+                Glide.with(itemView.context)
+                    .load(group.avatar)
+                    .placeholder(R.drawable.account)
+                    .error(R.drawable.account)
+                    .into(groupImage)
+            } else
+                groupImage.setImageResource(R.drawable.account)
             groupName.text = group.name
             groupLocation.text = group.location
             groupMembersLimit.text = "${group.members?.size}/${group.membersLimit}"

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "835226437885",
+    "project_id": "nexas-21b6e",
+    "storage_bucket": "nexas-21b6e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:835226437885:android:5cad86f7b66b64938d5694",
+        "android_client_info": {
+          "package_name": "com.example.nexas"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "835226437885-dvl8i1tabm6733eatens2c175kjaveco.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.nexas",
+            "certificate_hash": "3203d2159e4604f367fb280ef55737f4f816804a"
+          }
+        },
+        {
+          "client_id": "835226437885-09ftum98bc1hvqto79hjkgg5ts04u3m7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlLUQik212D1gsB1zUQupztVS2MuHb-pk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "835226437885-09ftum98bc1hvqto79hjkgg5ts04u3m7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

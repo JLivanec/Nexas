@@ -12,7 +12,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentCreateAccountBinding
-import org.mindrot.jbcrypt.BCrypt
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
@@ -70,21 +69,20 @@ class CreateAccountFragment : Fragment(), View.OnClickListener {
             return
         }
 
-        val newProfile = UserProfile(
-            uname = usernameInput.text.toString(),
-            fname = firstnameInput.text.toString(),
-            lname = lastNameInput.text.toString(),
-            email = emailInput.text.toString(),
-            location = "online",
+        val newProfile = Profile(
+            id = "",
+            username = usernameInput.text.toString(),
+            firstName = firstnameInput.text.toString(),
+            lastName = lastNameInput.text.toString(),
+            location = "Online",
             description = "",
-            avatar = null,
-            background = null,
-            age = 18,
-            hashedPassword = BCrypt.hashpw(passwordInput.text.toString(), BCrypt.gensalt())
+            avatar = "",
+            background = "",
+            age = -1
         )
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val error = model.createAccount(newProfile)
+            val error = model.createAccount(emailInput.text.toString(), passwordInput.text.toString(), newProfile)
 
             if (error == "") {
                 Toast.makeText(context, "Account Created", Toast.LENGTH_SHORT).show()

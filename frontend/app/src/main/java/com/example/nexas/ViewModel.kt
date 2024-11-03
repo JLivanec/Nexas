@@ -1,256 +1,66 @@
 package com.example.nexas
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
+import android.app.Application
 import android.provider.MediaStore
-import androidx.lifecycle.LiveData
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
-import com.example.nexas.data.MongoClientConnection
-import com.example.nexas.model.*
-import kotlinx.coroutines.launch
-import org.mindrot.jbcrypt.BCrypt
+import com.example.nexas.data.FirebaseConnection
+import com.example.nexas.model.Group
+import com.example.nexas.model.Profile
 
-class ViewModel : ViewModel() {
 
-    private var db = MongoClientConnection()
-    lateinit var myProfile: UserProfile
+class ViewModel(application: Application) : AndroidViewModel(application) {
+
+    private var fb = FirebaseConnection()
+    lateinit var myProfile: Profile
     private var _groups = MutableLiveData<List<Group>>(emptyList())
-    val groups: LiveData<List<Group>> get() = _groups
+    val groups: MutableLiveData<List<Group>> get() = _groups
 
-    init {
-//        fetchMyProfile()
-        fetchGroups()
+    suspend fun createAccount(email: String, password: String, profile: Profile): String {
+        val error = fb.createUser(email, password, profile)
+
+        return error
     }
 
-    // TODO: Remove
-    fun createSampleBitmap(color: Int): Bitmap {
-        return Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888).apply {
-            Canvas(this).drawColor(color)
+    suspend fun login(email: String, password: String): String {
+        val tempProfile = fb.login(email, password)
+            ?: return "Error: Incorrect Username or Password"
+
+        myProfile = tempProfile
+        return ""
+    }
+
+    suspend fun updateProfile(profile: Profile): String {
+        return try {
+            fb.updateUser(myProfile, profile)
+            myProfile = fb.getProfile(myProfile.id)?: myProfile
+            ""
+        } catch (e: Exception) {
+            e.message ?: "Failed to update profile"
         }
     }
 
-    fun fetchMyProfile() {
-        // TODO: Get My Profile
-        myProfile = UserProfile(
-            id = "1209",
-            uname = "jordan_bells",
-            fname = "Jordan",
-            lname = "Bells",
-            email = "jordan.bells@example.com",
-            location = "San Francisco, CA",
-            description = "Hi, I’m Jordan! I’m a 22-year-old who just graduated from college and moved to San Francisco for my new job. I’m passionate about the outdoors and enjoy activities like hiking and climbing. While I prefer being around familiar faces, I’m excited to explore new places and meet new friends along the way.",
-            avatar = null,
-            background = null,
-            age = 22,
-            hashedPassword = "hashedPasswordForJordan"
-        )
+    suspend fun createGroup(group: Group): String {
+        return try {
+            val createdGroup = fb.createGroup(group)
+                ?: return "Error: Group creation failed"
+
+            val currentGroups = _groups.value?.toMutableList() ?: mutableListOf()
+            currentGroups.add(createdGroup)
+            _groups.value = currentGroups
+            ""
+        } catch (e: Exception) {
+            "Error: ${e.message}"
+        }
     }
 
-    fun fetchGroups() {
-        // TODO: Get groups from API
-        val fakeGroups: List<Group> = listOf(
-            Group(
-                id = "146",
-                name = "Bread Baking",
-                avatar = createSampleBitmap(Color.MAGENTA),
-                location = "San Francisco, CA",
-                description = "Join us to share recipes, tips, and experiences in the art of bread baking. All skill levels welcome!",
-                membersLimit = 10,
-                members = listOf(
-                    UserProfile(
-                        id = "1209",
-                        uname = "jordan_bells",
-                        fname = "Jordan",
-                        lname = "Bells",
-                        email = "jordan.bells@example.com",
-                        location = "San Francisco, CA",
-                        description = "Hi, I’m Jordan! I’m a 22-year-old outdoor enthusiast who loves mountain biking and exploring new trails. I'm excited to connect with fellow bikers!",
-                        avatar = createSampleBitmap(Color.RED),
-                        background = null,
-                        age = 22,
-                        hashedPassword = "hashedPasswordForJordan"
-                    ),
-                    UserProfile(
-                        id = "8921",
-                        uname = "david_lee",
-                        fname = "David",
-                        lname = "Lee",
-                        email = "david.lee@example.com",
-                        location = "New York, NY",
-                        description = "I’m David, a 35-year-old IT specialist who enjoys the science of baking. I'm excited to learn and share tips on making the perfect loaf.",
-                        avatar = createSampleBitmap(Color.BLUE),
-                        background = null,
-                        age = 35,
-                        hashedPassword = "hashedPasswordForDavid"
-                    ),
-                    UserProfile(
-                        id = "6540",
-                        uname = "jade_chan",
-                        fname = "Jade",
-                        lname = "Chan",
-                        email = "jade.chan@example.com",
-                        location = "Seattle, WA",
-                        description = "Hello! I'm Jade, a 20-year-old online student. I love exploring history, and Ancient Rome is one of my favorite topics!",
-                        avatar = createSampleBitmap(Color.GREEN),
-                        background = null,
-                        age = 20,
-                        hashedPassword = "hashedPasswordForJade"
-                    )
-                ),
-                messages = listOf(
-                    Message(
-                        id = "1",
-                        senderID = "1209", // Corresponds to Jordan Bells
-                        groupID = "146", // Corresponds to this group
-                        videoImage = createSampleBitmap(Color.RED),
-                        videoID = "First Ride Adventure"
-                    ),
-                    Message(
-                        id = "2",
-                        senderID = "8921", // Corresponds to David Lee
-                        groupID = "146", // Corresponds to this group
-                        videoImage = createSampleBitmap(Color.BLUE),
-                        videoID = "Baking Science Explained"
-                    ),
-                    Message(
-                        id = "3",
-                        senderID = "1209", // Corresponds to Jordan Bells
-                        groupID = "146", // Corresponds to this group
-                        videoImage = null,
-                        videoID = "Trail Safety Tips"
-                    ),
-                    Message(
-                        id = "4",
-                        senderID = "6540", // Corresponds to Jade Chan
-                        groupID = "146", // Corresponds to this group
-                        videoImage = createSampleBitmap(Color.GREEN),
-                        videoID = "Exploring Ancient Rome"
-                    ),
-                    Message(
-                        id = "5",
-                        senderID = "1209", // Corresponds to Jordan Bells
-                        groupID = "146", // Corresponds to this group
-                        videoImage = null,
-                        videoID = "Mountain Biking 101"
-                    )
-                )
-            )
-        )
-        Group(
-            id = "147",
-            name = "Mountain Biking Adventures",
-            avatar = createSampleBitmap(Color.YELLOW),
-            location = "Boulder, CO",
-            description = "Join us for thrilling mountain biking adventures! Share trails, tips, and ride experiences.",
-            membersLimit = 15,
-            members = listOf(
-                UserProfile(
-                    id = "1209",
-                    uname = "jordan_bells",
-                    fname = "Jordan",
-                    lname = "Bells",
-                    email = "jordan.bells@example.com",
-                    location = "San Francisco, CA",
-                    description = "Hi, I’m Jordan! I’m a 22-year-old outdoor enthusiast who loves mountain biking and exploring new trails. I'm excited to connect with fellow bikers!",
-                    avatar = createSampleBitmap(Color.RED),
-                    background = null,
-                    age = 22,
-                    hashedPassword = "hashedPasswordForJordan" // Placeholder for demonstration
-                ),
-                UserProfile(
-                    id = "8921",
-                    uname = "david_lee",
-                    fname = "David",
-                    lname = "Lee",
-                    email = "david.lee@example.com",
-                    location = "New York, NY",
-                    description = "I’m David, a 35-year-old IT specialist who enjoys the science of baking. I'm excited to learn and share tips on making the perfect loaf.",
-                    avatar = createSampleBitmap(Color.BLUE),
-                    background = null,
-                    age = 35,
-                    hashedPassword = "hashedPasswordForDavid" // Placeholder for demonstration
-                ),
-                UserProfile(
-                    id = "6540",
-                    uname = "jade_chan",
-                    fname = "Jade",
-                    lname = "Chan",
-                    email = "jade.chan@example.com",
-                    location = "Seattle, WA",
-                    description = "Hello! I'm Jade, a 20-year-old online student. I love exploring history, and Ancient Rome is one of my favorite topics!",
-                    avatar = createSampleBitmap(Color.GREEN),
-                    background = null,
-                    age = 20,
-                    hashedPassword = "hashedPasswordForJade" // Placeholder for demonstration
-                ),
-                UserProfile(
-                    id = "3472",
-                    uname = "max_walker",
-                    fname = "Max",
-                    lname = "Walker",
-                    email = "max.walker@example.com",
-                    location = "Boulder, CO",
-                    description = "I'm Max, a passionate mountain biker and trail guide. Let's ride some epic trails together!",
-                    avatar = createSampleBitmap(Color.CYAN),
-                    background = null,
-                    age = 30,
-                    hashedPassword = "hashedPasswordForMax" // Placeholder for demonstration
-                )
-            ),
-            messages = listOf(
-                Message(
-                    id = "1",
-                    senderID = "1209", // Corresponds to Jordan Bells
-                    groupID = "147", // Corresponds to this group
-                    videoImage = createSampleBitmap(Color.RED),
-                    videoID = "Epic Trails in Colorado"
-                ),
-                Message(
-                    id = "2",
-                    senderID = "3472", // Corresponds to Max Walker
-                    groupID = "147", // Corresponds to this group
-                    videoImage = createSampleBitmap(Color.YELLOW),
-                    videoID = "Best Bikes for Mountain Trails"
-                ),
-                Message(
-                    id = "3",
-                    senderID = "6540", // Corresponds to Jade Chan
-                    groupID = "147", // Corresponds to this group
-                    videoImage = null,
-                    videoID = "Safety Tips for Biking"
-                ),
-                Message(
-                    id = "4",
-                    senderID = "8921", // Corresponds to David Lee
-                    groupID = "147", // Corresponds to this group
-                    videoImage = createSampleBitmap(Color.BLUE),
-                    videoID = "Baking Energy Bars for Rides"
-                ),
-                Message(
-                    id = "5",
-                    senderID = "1209", // Corresponds to Jordan Bells
-                    groupID = "147", // Corresponds to this group
-                    videoImage = createSampleBitmap(Color.RED),
-                    videoID = "My Favorite Biking Gear"
-                )
-            )
-        )
-        _groups.value = fakeGroups
-    }
-
-    fun createGroup(group: Group): String {
-        // TODO: Replace with making group in DB
-        val newGroup = group.copy(id = "new${_groups.value!!.size + 1}",
-            location = myProfile.location,
-            members = listOf(myProfile)
-        )
-        val updatedList = _groups.value?.toMutableList() ?: mutableListOf()
-        updatedList.add(newGroup)
-        _groups.value = updatedList
-        return ""
+    suspend fun getGroups() {
+        try {
+            val fetchedGroups = fb.getGroups()
+            _groups.value = fetchedGroups
+        } catch (e: Exception) {
+            // Handle errors if needed
+        }
     }
 
     fun joinGroup(groupID: String) {
@@ -261,64 +71,41 @@ class ViewModel : ViewModel() {
         // TODO: Send video
     }
 
-    suspend fun createAccount(profile: UserProfile): String {
-        var error = validateProfile(profile)
-
-        if (error != "")
-            return error
-
-        if (!db.insertUserProfile(profile))
-            error = "Server Error: Please try again"
-
-        return error
+    fun findGroupById(targetId: String): Group? {
+        return groups.value?.find { it.id == targetId }
     }
 
-    suspend fun autoLogin(): Boolean {
-        if (myProfile.hashedPassword != "") {
-            val tempProfile = db.validateCredentials(myProfile.uname, myProfile.hashedPassword)
-                ?: return false
-
-            myProfile = tempProfile
-            return true
-        }
-        return false
-    }
-
-    suspend fun login(uname: String, hashedPassword: String): String {
-        val tempProfile = db.validateCredentials(uname, hashedPassword)
-            ?: return "Error: Incorrect Username or Password"
-
-        myProfile = tempProfile
-        return ""
-    }
-
-//    fun updateProfile(profile: UserProfile) {
-//        // TODO: Save My Profile
-//        myProfile = profile
+//    suspend fun autoLogin(): Boolean {
+//        if (myProfile.hashedPassword != "") {
+//            val tempProfile = db.validateCredentials(myProfile.username, myProfile.hashedPassword)
+//                ?: return false
+//
+//            myProfile = tempProfile
+//            return true
+//        }
+//        return false
 //    }
 
-    private suspend fun validateProfile(profile: UserProfile): String {
-        if (profile.fname == "" ||
-            profile.fname.contains(" "))
-            return "Error: Invalid First Name (No spaces allowed)"
-
-        if (profile.lname == "" ||
-            profile.lname.contains(" "))
-            return "Error: Invalid Last Name (No spaces allowed)"
-
-        if (profile.uname == "" ||
-            profile.uname.contains(" "))
-            return "Error: Invalid Username (No spaces allowed)"
-
-        if (profile.email == "" ||
-            !profile.email.contains(".*@.*") ||
-            profile.email.contains(" "))
-            return "Error: Invalid Email"
-
-        if (db.getUserProfileByUsername(profile.uname) != null)
-            return "Error: An account with this username already exists"
-
-        return ""
-    }
+//    private suspend fun validateProfile(profile: Profile): String {
+//        if (profile.firstName == "" ||
+//            profile.firstName.contains(" "))
+//            return "Error: Invalid First Name (No spaces allowed)"
+//
+//        if (profile.lastName == "" ||
+//            profile.lastName.contains(" "))
+//            return "Error: Invalid Last Name (No spaces allowed)"
+//
+//        if (profile.username == "" ||
+//            profile.username.contains(" "))
+//            return "Error: Invalid Username (No spaces allowed)"
+//
+//        if (profile.email == "" || profile.email.contains(" "))
+//            return "Error: Invalid Email"
+//
+//        if (db.getProfileByUsername(profile.username) != null)
+//            return "Error: An account with this username already exists"
+//
+//        return ""
+//    }
 
 }

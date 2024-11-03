@@ -14,9 +14,11 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.nexas.databinding.FragmentChatBinding
 import com.google.android.material.imageview.ShapeableImageView
 import com.example.nexas.model.*
@@ -26,6 +28,9 @@ class ChatFragment : Fragment(), View.OnClickListener {
     // view binding
     private var _binding: FragmentChatBinding? = null
     private val binding get() = _binding!!
+
+    // ViewModel
+    private val model: ViewModel by activityViewModels()
 
     // Message Types
     private val VIEW_TYPE_SENT = 1
@@ -39,91 +44,18 @@ class ChatFragment : Fragment(), View.OnClickListener {
     private lateinit var messageRecycler: RecyclerView
     private lateinit var adapter: ChatAdapter
 
-    private var myID: String = "1" // TODO: Pull id from viewmodel
-
-    //TODO: Replace with pull from viewmodel
-    private var group: Group = Group(
-        id = "Temp",
-        name = "Group Temp",
-        avatar = null,
-        location = "Location Temp",
-        description = "Temp description",
-        membersLimit = 10,
-        members = listOf(
-            UserProfile(
-                uname = "aliceinwonderland",
-                id = "1",
-                fname = "Alice",
-                lname = "jones",
-                email = "ali@cox.net",
-                avatar = null,
-                location = "New York",
-                description = "Loves hiking",
-                background = null,
-                age = 35,
-                hashedPassword = "supersecurepassword"
-            ),
-            UserProfile(
-                uname = "billybob",
-                id = "2",
-                fname = "Bob",
-                lname = "the builder",
-                email = "billybob@canada.usa",
-                avatar = null,
-                location = "San Francisco",
-                description = "Tech lover",
-                background = null,
-                age = 69,
-                hashedPassword = "i like milk"
-            )
-        ),
-        messages = listOf(
-            Message(
-                id = "1",
-                senderID = "1",
-                groupID = "1",
-                videoImage = createSampleBitmap(),
-                videoID = "1",
-                timestamp = Instant.now()
-            ),
-            Message(
-                id = "2",
-                senderID = "2",
-                groupID = "1",
-                videoImage = createSampleBitmap(),
-                videoID = "2",
-                timestamp = Instant.now()
-            ),
-            Message(
-                id = "3",
-                senderID = "1",
-                groupID = "2",
-                videoImage = null,
-                videoID = "3",
-                timestamp = Instant.now()
-            ),
-            Message(
-                id = "4",
-                senderID = "2",
-                groupID = "2",
-                videoImage = createSampleBitmap(),
-                videoID = "4",
-                timestamp = Instant.now()
-            ),
-            Message(
-                id = "5",
-                senderID = "1",
-                groupID = "3",
-                videoImage = null,
-                videoID = "5",
-                timestamp = Instant.now()
-            )
-        )
-    )
+    private lateinit var groupId: String
+    private lateinit var group: Group
 
     fun createSampleBitmap(): Bitmap {
         return Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888).apply {
             Canvas(this).drawColor(Color.RED)
+        }
+    }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let {
+            groupId = it.getString("groupId")?: ""
         }
     }
 
@@ -142,6 +74,19 @@ class ChatFragment : Fragment(), View.OnClickListener {
         backButton.setOnClickListener(this)
         groupHeader.setOnClickListener(this)
         recordButton.setOnClickListener(this)
+
+        group = model.findGroupById(groupId)!!
+
+        // Set header
+        if (group.avatar.isNotBlank()) {
+            Glide.with(requireContext())
+                .load(group.avatar)
+                .placeholder(R.drawable.account)
+                .error(R.drawable.account)
+                .into(binding.groupAvatar)
+        } else
+            binding.groupAvatar.setImageResource(R.drawable.account)
+        binding.groupName.text = group.name
 
         // Chat Recycler Setup
         messageRecycler = binding.messageRecycler
@@ -166,33 +111,23 @@ class ChatFragment : Fragment(), View.OnClickListener {
         private val avatar: ImageView = itemView.findViewById(R.id.avatar)
         private val video: ImageView = itemView.findViewById(R.id.video)
 
-        init {
-            itemView.setOnClickListener {
-                // TODO: Change location to chat screen and pass group to move to
-                Log.d("Chat", "Watch")
-            }
-        }
-
         fun bind(message: Message) {
             val member = group.members?.find { it.id == message.senderID }
-
             if (member != null) {
-                member.avatar?.let { avatarBitmap ->
-                    avatar.setImageBitmap(avatarBitmap)
-                } ?: run {
+                if (member.avatar.isNotBlank()) {
+                    Glide.with(itemView.context)
+                        .load(member.avatar)
+                        .placeholder(R.drawable.account)
+                        .error(R.drawable.account)
+                        .into(avatar)
+                } else
                     avatar.setImageResource(R.drawable.account)
-                }
-            } else {
+            }
+            else
                 avatar.setImageResource(R.drawable.account)
-            }
 
-            message.videoImage?.let { videoBitmap ->
-                video.setImageBitmap(videoBitmap)
-                video.clearColorFilter()
-            } ?: run {
-                video.setImageBitmap(null)
-                video.setColorFilter(ContextCompat.getColor(video.context, R.color.box_background), PorterDuff.Mode.SRC_IN)
-            }
+            video.setImageBitmap(null)
+            video.setColorFilter(ContextCompat.getColor(video.context, R.color.box_background), PorterDuff.Mode.SRC_IN)
         }
     }
 
@@ -224,7 +159,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
 
         override fun getItemViewType(position: Int): Int {
             val message = messages[position]
-            return if (message.senderID == myID) {
+            return if (message.senderID == model.myProfile.id) {
                 VIEW_TYPE_SENT
             } else {
                 VIEW_TYPE_RECEIVED

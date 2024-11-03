@@ -1,7 +1,9 @@
 package com.example.nexas
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -17,12 +19,15 @@ import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentCreateGroupBinding
 import com.google.android.material.imageview.ShapeableImageView
 import com.example.nexas.model.*
+import kotlinx.coroutines.launch
 
 
 class CreateGroupFragment : Fragment(), View.OnClickListener {
@@ -46,6 +51,11 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
     private lateinit var groupDescriptionInput: EditText
     private lateinit var maxMembersSpinner: Spinner
 
+    // Constant for image picking
+    private val IMAGE_PICK_CODE = 1000
+
+    private var curAvatarURI: String? = null
+
     private val maxMembersOptions = arrayOf(3, 5, 7, 10, 15, 20)
 
     override fun onCreateView(
@@ -63,17 +73,18 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
         backButton = binding.backButton
         submitButton = binding.submitButton
 
+        groupNameInput = binding.groupNameInput
+        groupAvatarInput = binding.groupAvatarInput
+        groupDescriptionInput = binding.groupDescriptionInput
+        maxMembersSpinner = binding.maxMembersSpinner
+
         homeButton.setOnClickListener(this)
         myProfileButton.setOnClickListener(this)
         groupsButton.setOnClickListener(this)
         settingsButton.setOnClickListener(this)
         backButton.setOnClickListener(this)
         submitButton.setOnClickListener(this)
-
-        groupNameInput = binding.groupNameInput
-        groupAvatarInput = binding.groupAvatarInput
-        groupDescriptionInput = binding.groupDescriptionInput
-        maxMembersSpinner = binding.maxMembersSpinner
+        groupAvatarInput.setOnClickListener(this)
 
         groupNameInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
@@ -138,32 +149,29 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
     // Create Group
     private fun createGroup() {
         val groupName = groupNameInput.text.toString()
-        groupAvatarInput.isDrawingCacheEnabled = true
-        groupAvatarInput.buildDrawingCache()
-        val groupAvatar = Bitmap.createBitmap(groupAvatarInput.drawingCache)
-        groupAvatarInput.isDrawingCacheEnabled = false
-        groupAvatarInput.destroyDrawingCache()
+        val groupAvatar = curAvatarURI?: ""
         val groupDescription = groupDescriptionInput.text.toString()
         val maxMembers = maxMembersSpinner.selectedItem.toString().toInt()
 
-        val result = model.createGroup(
-            Group(
-                id = "",
-                name = groupName,
-                avatar = groupAvatar,
-                location = "",
-                description = groupDescription,
-                membersLimit = maxMembers,
-                members = listOf(),
-                messages = listOf()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val error = model.createGroup(
+                Group(
+                    id = "",
+                    name = groupName,
+                    avatar = groupAvatar,
+                    location = model.myProfile.location,
+                    description = groupDescription,
+                    membersLimit = maxMembers,
+                    members = listOf(model.myProfile),
+                    messages = listOf()
+                )
             )
-        )
-
-        if (result == "") {
-            Toast.makeText(context, "Group created successfully!", Toast.LENGTH_SHORT).show()
-            findNavController().navigateUp()
-        } else {
-            Toast.makeText(context, "Error: $result", Toast.LENGTH_SHORT).show()
+            if (error == "") {
+                Toast.makeText(context, "Group created successfully!", Toast.LENGTH_SHORT).show()
+                findNavController().navigateUp()
+            } else {
+                Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -176,6 +184,24 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
             settingsButton.id -> {findNavController().navigate(R.id.action_createGroupFragment_to_settingsFragment)}
             backButton.id -> {findNavController().navigateUp()}
             submitButton.id -> {createGroup()}
+            groupAvatarInput.id -> {
+                val intent = Intent(Intent.ACTION_PICK).apply {
+                    type = "image/*"
+                }
+                startActivityForResult(intent, IMAGE_PICK_CODE)
+            }
+        }
+    }
+
+    // Handle the result from image picker
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == AppCompatActivity.RESULT_OK && data != null) {
+            val imageUri: Uri? = data.data
+            if (requestCode == IMAGE_PICK_CODE) {
+                    groupAvatarInput.setImageURI(imageUri)
+                    curAvatarURI = imageUri.toString()
+            }
         }
     }
 
