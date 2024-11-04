@@ -19,6 +19,21 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun createAccount(email: String, password: String, profile: Profile): String {
         val error = fb.createUser(email, password, profile)
 
+        if (error == "")
+            myProfile = profile
+        else
+            myProfile = Profile(
+                id = "",
+                firstName = "",
+                lastName = "",
+                username = "",
+                location = "",
+                description = "",
+                avatar = "",
+                background = "",
+                age = -1,
+            )
+
         return error
     }
 
