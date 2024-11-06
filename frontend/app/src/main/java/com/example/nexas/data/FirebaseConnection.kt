@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.tasks.await
 
 class FirebaseConnection() {
@@ -230,5 +231,41 @@ class FirebaseConnection() {
             Log.e("FirebaseConnection", "Error uploading image", e)
             throw e
         }
+    }
+
+    // add a blocked user to the list of blocked users contained in the BlockedProfiles object
+    private suspend fun addBlockedUser(blockedId: String): Boolean {
+        return try {
+            val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
+
+            db.collection("profiles").document(currentUserId)
+                .update("blockedUsers", FieldValue.arrayUnion(blockedId))
+                .await()
+
+            Log.d("FirebaseConnection", "User $blockedId successfully blocked by $currentUserId")
+            true
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error blocking user", e)
+            false
+        }
+    }
+
+    // retrieve a list of blocked users for the given profile
+    private suspend fun getBlockedUsers(): List<String> {
+        return try {
+            val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
+            val document = db.collection("profiles").document(currentUserId).get().await()
+
+            document["blockedUsers"] as? List<String> ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error retrieving blocked users", e)
+            emptyList()
+        }
+    }
+
+    // check if another profile is blocked
+    private suspend fun checkIfBlocked(otherUserId: String): Boolean {
+        val blockedUsers = getBlockedUsers()
+        return otherUserId in blockedUsers
     }
 }
