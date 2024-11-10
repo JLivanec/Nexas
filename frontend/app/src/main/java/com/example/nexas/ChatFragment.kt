@@ -1,5 +1,6 @@
 package com.example.nexas
 
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -13,6 +14,8 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -46,6 +49,9 @@ class ChatFragment : Fragment(), View.OnClickListener {
 
     private lateinit var groupId: String
     private lateinit var group: Group
+
+    // Camera permission
+    private val CAMERA_PERMISSION_CODE = 100
 
     fun createSampleBitmap(): Bitmap {
         return Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888).apply {
@@ -103,7 +109,8 @@ class ChatFragment : Fragment(), View.OnClickListener {
         when (v?.id) {
             backButton.id -> {findNavController().navigateUp()}
             groupHeader.id -> {findNavController().navigate(R.id.action_chatFragment_to_groupProfileFragment)}
-            recordButton.id -> {Log.d("Chat", "Record")} // TODO: Setup recording
+//            recordButton.id -> {Log.d("Chat", "Record")} // TODO: Setup recording
+            recordButton.id -> checkCameraPermission()
         }
     }
 
@@ -173,4 +180,28 @@ class ChatFragment : Fragment(), View.OnClickListener {
         super.onDestroyView()
         _binding = null
     }
+
+    private fun navigateToRecordFragment() {
+        findNavController().navigate(R.id.action_chatFragment_to_recordFragment)
+    }
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            // Permission granted, navigate to RecordFragment
+            navigateToRecordFragment()
+        } else {
+            // Permission denied, show a message
+            Toast.makeText(requireContext(), "Camera permission is required to record video.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            // Request camera permission using the launcher
+            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+        } else {
+            // Permission is already granted, navigate to RecordFragment
+            navigateToRecordFragment()
+        }
+    }
+
 }

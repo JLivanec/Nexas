@@ -89,8 +89,11 @@ dependencies {
     implementation (libs.glide)
 
     // Recording
-    implementation(libs.androidx.camera.core)
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle)
-    implementation(libs.androidx.camera.view)
+
+    implementation(libs.androidx.camera.core.v122)
+    implementation(libs.androidx.camera.camera2.v122)
+    implementation(libs.androidx.camera.lifecycle.v122)
+    implementation(libs.androidx.camera.video)
+    implementation(libs.androidx.camera.view.v122)
+    implementation(libs.androidx.camera.extensions)
 }
