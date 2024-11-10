@@ -131,6 +131,7 @@
                 android:text="Hi, I’m Jordan! I’m a 22-year-old who just graduated from college and moved to San Francisco for my new job. I’m passionate about the outdoors and enjoy activities like hiking and climbing. While I prefer being around familiar faces, I’m excited to explore new places and meet new friends along the way."
                 android:textColor="@color/white"
                 android:textSize="14sp" />
+
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
