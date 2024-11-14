@@ -1,7 +1,5 @@
 package com.example.nexas.model
 
-import android.graphics.Bitmap
-
 data class Group(
     var id: String,
     var name: String,

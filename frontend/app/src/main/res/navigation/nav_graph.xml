@@ -133,16 +133,33 @@
         tools:layout="@layout/fragment_chat" >
         <action
             android:id="@+id/action_chatFragment_to_groupProfileFragment"
-            app:destination="@id/groupProfileFragment" />
+            app:destination="@id/groupProfileFragment">
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+        </action>
         <action
             android:id="@+id/action_chatFragment_to_recordFragment"
             app:destination="@id/recordFragment" />
+        <action
+            android:id="@+id/action_chatFragment_to_groupsFragment"
+            app:destination="@id/groupsFragment" />
     </fragment>
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.example.nexas.ProfileFragment"
         android:label="fragment_profile"
-        tools:layout="@layout/fragment_profile" />
+        tools:layout="@layout/fragment_profile" >
+        <action
+            android:id="@+id/action_profileFragment_to_groupsFragment"
+            app:destination="@id/groupsFragment" />
+        <action
+            android:id="@+id/action_profileFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_profileFragment_to_myProfileFragment"
+            app:destination="@id/myProfileFragment" />
+    </fragment>
     <fragment
         android:id="@+id/groupProfileFragment"
         android:name="com.example.nexas.GroupProfileFragment"
@@ -150,7 +167,17 @@
         tools:layout="@layout/fragment_group_profile" >
         <action
             android:id="@+id/action_groupProfileFragment_to_profileFragment"
-            app:destination="@id/profileFragment" />
+            app:destination="@id/profileFragment">
+            <argument
+                android:name="profileId"
+                app:argType="string" />
+        </action>
+        <action
+            android:id="@+id/action_groupProfileFragment_to_groupsFragment"
+            app:destination="@id/groupsFragment" />
+        <action
+            android:id="@+id/action_groupProfileFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
     </fragment>
     <fragment
         android:id="@+id/createAccountFragment"

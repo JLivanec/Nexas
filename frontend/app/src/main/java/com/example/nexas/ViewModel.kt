@@ -2,8 +2,8 @@ package com.example.nexas
 
 import android.app.Application
 import android.provider.MediaStore
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
 import com.example.nexas.data.FirebaseConnection
 import com.example.nexas.model.Group
 import com.example.nexas.model.Profile
@@ -13,8 +13,16 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
 
     private var fb = FirebaseConnection()
     lateinit var myProfile: Profile
-    private var _groups = MutableLiveData<List<Group>>(emptyList())
-    val groups: MutableLiveData<List<Group>> get() = _groups
+    private var groups = listOf<Group>()
+    private var myGroups = listOf<Group>()
+
+    fun getGroups(): List<Group> {
+        return groups
+    }
+
+    fun getMyGroups(): List<Group> {
+        return myGroups
+    }
 
     suspend fun createAccount(email: String, password: String, profile: Profile): String {
         val error = fb.createUser(email, password, profile)
@@ -60,26 +68,32 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
             val createdGroup = fb.createGroup(group)
                 ?: return "Error: Group creation failed"
 
-            val currentGroups = _groups.value?.toMutableList() ?: mutableListOf()
+            val currentGroups = groups.toMutableList()
             currentGroups.add(createdGroup)
-            _groups.value = currentGroups
+            groups = currentGroups
             ""
         } catch (e: Exception) {
             "Error: ${e.message}"
         }
     }
 
-    suspend fun getGroups() {
+    suspend fun fetchGroups() {
         try {
-            val fetchedGroups = fb.getGroups()
-            _groups.value = fetchedGroups
+            groups = fb.getGroups()
+            myGroups = fb.getMyGroups()
         } catch (e: Exception) {
-            // Handle errors if needed
+            Log.e("FirebaseConnection", "Error fetching groups", e)
         }
     }
 
-    fun joinGroup(groupID: String) {
-        // TODO: Join group
+    suspend fun joinGroup(groupID: String) {
+        fb.joinGroup(groupID)
+        fetchGroups()
+    }
+
+    suspend fun leaveGroup(groupID: String) {
+        fb.leaveGroup(groupID)
+        fetchGroups()
     }
 
     fun sendVideo(video: MediaStore.Video) {
@@ -87,7 +101,15 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun findGroupById(targetId: String): Group? {
-        return groups.value?.find { it.id == targetId }
+        return groups.find { it.id == targetId }
+    }
+
+    fun findMyGroupById(targetId: String): Group? {
+        return myGroups.find { it.id == targetId }
+    }
+
+    fun findProfileById(targetId: String): Profile? {
+        return groups.flatMap { it.members!! }.find { it.id == targetId }
     }
 
 //    suspend fun autoLogin(): Boolean {

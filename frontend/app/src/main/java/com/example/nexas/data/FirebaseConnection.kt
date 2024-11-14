@@ -109,8 +109,6 @@ class FirebaseConnection() {
         Log.d("FirebaseConnection", "Wrote user profile")
     }
 
-
-
     // Create a new group with a random group ID
     suspend fun createGroup(group: Group): Group? {
         return try {
@@ -141,56 +139,87 @@ class FirebaseConnection() {
 
     // Fetches groups based on user id
     suspend fun getGroups(): List<Group> {
-        return try {
-            val querySnapshot = db.collection("groups")
-                .whereArrayContains("members", user!!.uid)
+        val querySnapshot = db.collection("groups")
+            .get()
+            .await()
+
+        val groups = mutableListOf<Group>()
+
+        for (document in querySnapshot.documents) {
+            val group = Group(
+                id = document.id,
+                name = document.getString("name") ?: "",
+                avatar = document.getString("avatar") ?: "",
+                location = document.getString("location") ?: "",
+                description = document.getString("description") ?: "",
+                membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
+                members = mutableListOf(),
+                messages = null
+            )
+
+            val memberIds = document.get("members") as? List<*> ?: emptyList<String>()
+
+            val memberProfiles = memberIds.mapNotNull { memberId ->
+                runCatching {
+                    getProfile(memberId.toString())
+                }.getOrNull()
+            }
+
+            group.members = memberProfiles.toMutableList()
+            groups.add(group)
+        }
+
+        Log.d("FirebaseConnection", "Fetched groups: ${groups.size}")
+        return groups
+    }
+
+    suspend fun getMyGroups(): List<Group> {
+        val querySnapshot = db.collection("groups")
+            .whereArrayContains("members", user!!.uid)
+            .get()
+            .await()
+
+        val groups = mutableListOf<Group>()
+
+        for (document in querySnapshot.documents) {
+            val group = Group(
+                id = document.id,
+                name = document.getString("name") ?: "",
+                avatar = document.getString("avatar") ?: "",
+                location = document.getString("location") ?: "",
+                description = document.getString("description") ?: "",
+                membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
+                members = mutableListOf(),
+                messages = mutableListOf()
+            )
+
+            val memberIds = document.get("members") as? List<*> ?: emptyList<String>()
+
+            val memberProfiles = memberIds.mapNotNull { memberId ->
+                runCatching {
+                    getProfile(memberId.toString())
+                }.getOrNull()
+            }
+
+            group.members = memberProfiles.toMutableList()
+
+            val messagesSnapshot = db.collection("groups")
+                .document(document.id)
+                .collection("messages")
                 .get()
                 .await()
 
-            val groups = mutableListOf<Group>()
+            group.messages = messagesSnapshot.documents.map { messageDoc ->
+                messageDoc.toObject(Message::class.java) // Assuming Message class is defined
+            }.filterNotNull().toMutableList()
 
-            for (document in querySnapshot.documents) {
-                val group = Group(
-                    id = document.id,
-                    name = document.getString("name") ?: "",
-                    avatar = document.getString("avatar") ?: "",
-                    location = document.getString("location") ?: "",
-                    description = document.getString("description") ?: "",
-                    membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
-                    members = mutableListOf(),
-                    messages = mutableListOf()
-                )
-
-                val memberIds = document.get("members") as? List<*> ?: emptyList<String>()
-
-                val memberProfiles = memberIds.mapNotNull { memberId ->
-                    runCatching {
-                        getProfile(memberId.toString())
-                    }.getOrNull()
-                }
-
-                group.members = memberProfiles.toMutableList()
-
-                val messagesSnapshot = db.collection("groups")
-                    .document(document.id)
-                    .collection("messages")
-                    .get()
-                    .await()
-
-                group.messages = messagesSnapshot.documents.map { messageDoc ->
-                    messageDoc.toObject(Message::class.java) // Assuming Message class is defined
-                }.filterNotNull().toMutableList()
-
-                groups.add(group)
-            }
-
-            Log.d("FirebaseConnection", "Fetched groups: ${groups.size}")
-            groups
-        } catch (e: Exception) {
-            Log.e("FirebaseConnection", "Error fetching groups", e)
-            emptyList()
+            groups.add(group)
         }
+
+        Log.d("FirebaseConnection", "Fetched my groups: ${groups.size}")
+        return groups
     }
+
 
     suspend fun getProfile(userID: String): Profile? {
         return try {
@@ -221,6 +250,40 @@ class FirebaseConnection() {
         }
     }
 
+    suspend fun joinGroup(groupId: String) {
+        val userId = user!!.uid
+        val groupDoc = db.collection("groups").document(groupId).get().await()
+
+        if (groupDoc.exists()) {
+            val members = groupDoc.get("members") as? List<String> ?: emptyList()
+
+            if (!members.contains(userId)) {
+                db.collection("groups")
+                    .document(groupId)
+                    .update("members", FieldValue.arrayUnion(userId))
+                    .await()
+            }
+        }
+    }
+
+
+    suspend fun leaveGroup(groupId: String) {
+        val userId = user!!.uid
+        val groupDoc = db.collection("groups").document(groupId).get().await()
+
+        if (groupDoc.exists()) {
+            val members = groupDoc.get("members") as? List<String> ?: emptyList()
+
+            if (members.contains(userId)) {
+                // Remove the user from the group
+                db.collection("groups")
+                    .document(groupId)
+                    .update("members", FieldValue.arrayRemove(userId))
+                    .await()
+            }
+        }
+    }
+
     private suspend fun uploadImage(imageUri: String, storageLoc: String): String {
         return try {
             val storageRef = storage.reference
@@ -232,6 +295,7 @@ class FirebaseConnection() {
             throw e
         }
     }
+
 
     // add a blocked user to the list of blocked users contained in the BlockedProfiles object
     private suspend fun addBlockedUser(blockedId: String): Boolean {

@@ -6,7 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -25,7 +24,6 @@ import com.bumptech.glide.Glide
 import com.example.nexas.databinding.FragmentChatBinding
 import com.google.android.material.imageview.ShapeableImageView
 import com.example.nexas.model.*
-import java.time.Instant
 
 class ChatFragment : Fragment(), View.OnClickListener {
     // view binding
@@ -63,6 +61,10 @@ class ChatFragment : Fragment(), View.OnClickListener {
         arguments?.let {
             groupId = it.getString("groupId")?: ""
         }
+        if (model.findMyGroupById(groupId) == null) {
+            Toast.makeText(context, "Error: Group not found", Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_chatFragment_to_groupsFragment)
+        }
     }
 
     override fun onCreateView(
@@ -81,7 +83,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
         groupHeader.setOnClickListener(this)
         recordButton.setOnClickListener(this)
 
-        group = model.findGroupById(groupId)!!
+        group = model.findMyGroupById(groupId)!!
 
         // Set header
         if (group.avatar.isNotBlank()) {
@@ -108,7 +110,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
     override fun onClick(v: View?) {
         when (v?.id) {
             backButton.id -> {findNavController().navigateUp()}
-            groupHeader.id -> {findNavController().navigate(R.id.action_chatFragment_to_groupProfileFragment)}
+            groupHeader.id -> {findNavController().navigate(ChatFragmentDirections.actionChatFragmentToGroupProfileFragment(groupId))}
 //            recordButton.id -> {Log.d("Chat", "Record")} // TODO: Setup recording
             recordButton.id -> checkCameraPermission()
         }

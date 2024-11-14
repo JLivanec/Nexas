@@ -78,12 +78,10 @@ class GroupsFragment : Fragment(), View.OnClickListener {
 
         // Observe the groups LiveData
         viewLifecycleOwner.lifecycleScope.launch {
-            model.getGroups()
-        }
-        model.groups.observe(viewLifecycleOwner, Observer { groups: List<Group> ->
-            myGroups = groups
+            model.fetchGroups()
+            myGroups = model.getMyGroups()
             adapter.updateGroups(myGroups)
-        })
+        }
 
         return view
     }

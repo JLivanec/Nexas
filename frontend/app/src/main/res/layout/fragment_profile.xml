@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MyProfileFragment">
+    tools:context=".ProfileFragment">
 
     <View
         android:id="@+id/backgroundGuide"
@@ -42,48 +42,89 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:background="@android:color/transparent"/>
 
+    <ImageButton
+        android:id="@+id/backButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/back_arrow"
+        android:layout_marginStart="16dp"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toBottomOf="@+id/nexasName"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/nexasName" />
+
     <!-- Profile Image -->
-    <ImageView
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/profileImage"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
         android:layout_marginTop="8dp"
-        android:background="@drawable/account"
         app:layout_constraintTop_toBottomOf="@id/nexasName"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:shapeAppearanceOverlay="@style/Circular"
+        app:srcCompat="@drawable/jordenbells" />
 
     <!-- Name -->
     <TextView
-        android:id="@+id/profileName"
+        android:id="@+id/profileFirstName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:background="@android:color/transparent"
         android:elevation="2dp"
-        android:text="Jordan Bells"
+        android:text="Jordan"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
         android:textColor="@color/white"
         android:textSize="34sp"
         android:textStyle="bold"
+        android:shadowColor="@color/text_shadow"
+        android:shadowDx="8"
+        android:shadowDy="8"
+        android:shadowRadius="2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/profileImage" />
 
+    <TextView
+        android:id="@+id/profileLastName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:elevation="2dp"
+        android:text="Bells"
+        android:textAppearance="@style/TextAppearance.AppCompat.Large"
+        android:textColor="@color/white"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:shadowColor="@color/text_shadow"
+        android:shadowDx="8"
+        android:shadowDy="8"
+        android:shadowRadius="2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/profileFirstName" />
+
     <!-- Location -->
     <TextView
         android:id="@+id/profileLocation"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:background="@android:color/transparent"
         android:elevation="2dp"
         android:text="San Francisco, CA"
+        android:textAlignment="center"
         android:textColor="@color/white"
         android:textSize="16sp"
+        android:shadowColor="@color/text_shadow"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/profileName" />
+        app:layout_constraintTop_toBottomOf="@id/profileLastName" />
 
     <!-- Bio Card -->
     <androidx.cardview.widget.CardView
@@ -100,7 +141,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="16dp"
+            android:padding="8dp"
             android:backgroundTint="@color/box_background" >
 
             <!-- Bio Title -->
@@ -119,7 +160,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="4dp"
                 android:background="@color/white" />
 
             <!-- Bio Text -->
@@ -130,7 +171,8 @@
                 android:backgroundTint="@android:color/transparent"
                 android:text="Hi, I’m Jordan! I’m a 22-year-old who just graduated from college and moved to San Francisco for my new job. I’m passionate about the outdoors and enjoy activities like hiking and climbing. While I prefer being around familiar faces, I’m excited to explore new places and meet new friends along the way."
                 android:textColor="@color/white"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                tools:ignore="HardcodedText" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

@@ -7,10 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentLoadingBinding
-import kotlinx.coroutines.launch
 
 class LoadingFragment : Fragment(), View.OnClickListener {
 
