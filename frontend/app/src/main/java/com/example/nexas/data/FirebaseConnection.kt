@@ -159,19 +159,46 @@ class FirebaseConnection() {
 
             val memberIds = document.get("members") as? List<*> ?: emptyList<String>()
 
-            val memberProfiles = memberIds.mapNotNull { memberId ->
-                runCatching {
-                    getProfile(memberId.toString())
-                }.getOrNull()
+            // Check if the current user is blocked by any member
+            val currentUserId = user?.uid
+            var isBlockedByAnyMember = false
+
+            for (memberId in memberIds) {
+                val blockedUsers = getBlockedUsersForMember(memberId.toString())
+                if (blockedUsers.contains(currentUserId)) {
+                    isBlockedByAnyMember = true
+                    break // No need to check further if blocked by one member
+                }
             }
 
-            group.members = memberProfiles.toMutableList()
-            groups.add(group)
+            // Only add the group if the current user is not blocked by any member
+            if (!isBlockedByAnyMember) {
+                val memberProfiles = memberIds.mapNotNull { memberId ->
+                    runCatching {
+                        getProfile(memberId.toString())
+                    }.getOrNull()
+                }
+
+                group.members = memberProfiles.toMutableList()
+                groups.add(group)
+            }
         }
 
         Log.d("FirebaseConnection", "Fetched groups: ${groups.size}")
         return groups
     }
+
+    // Helper function to get the blocked users for a specific member
+    private suspend fun getBlockedUsersForMember(memberId: String): List<String> {
+        return try {
+            val document = db.collection("profiles").document(memberId).get().await()
+            document.get("blockedUsers") as? List<String> ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error retrieving blocked users for member $memberId", e)
+            emptyList()
+        }
+    }
+
 
     suspend fun getMyGroups(): List<Group> {
         val querySnapshot = db.collection("groups")
@@ -203,15 +230,31 @@ class FirebaseConnection() {
 
             group.members = memberProfiles.toMutableList()
 
+            // Fetch messages from Firestore
             val messagesSnapshot = db.collection("groups")
                 .document(document.id)
                 .collection("messages")
                 .get()
                 .await()
 
-            group.messages = messagesSnapshot.documents.map { messageDoc ->
-                messageDoc.toObject(Message::class.java) // Assuming Message class is defined
-            }.filterNotNull().toMutableList()
+            // Manually create Message objects
+            val messages = messagesSnapshot.documents.mapNotNull { messageDoc ->
+                val id = messageDoc.id
+                val senderID = messageDoc.getString("senderID") ?: return@mapNotNull null
+                val videoImage = messageDoc.getString("videoImage") ?: return@mapNotNull null
+                val video = messageDoc.getString("video") ?: return@mapNotNull null
+                val timestamp = messageDoc.getTimestamp("timestamp") ?: return@mapNotNull null
+                Message(
+                    id = id,
+                    senderID = senderID,
+                    videoImage = videoImage,
+                    video = video,
+                    timestamp = timestamp
+                )
+
+            }
+
+            group.messages = messages.sortedBy { it.timestamp.toDate() }.toMutableList()
 
             groups.add(group)
         }
@@ -221,14 +264,13 @@ class FirebaseConnection() {
     }
 
 
+
+
     suspend fun getProfile(userID: String): Profile? {
         return try {
-            // Retrieve the profile document from Firestore
             val document = db.collection("profiles").document(userID).get().await()
 
-            // Check if the document exists
             if (document.exists()) {
-                // Construct and return the Profile object
                 Profile(
                     id = userID,
                     username = document["username"].toString(),
@@ -298,20 +340,32 @@ class FirebaseConnection() {
 
 
     // add a blocked user to the list of blocked users contained in the BlockedProfiles object
-    private suspend fun addBlockedUser(blockedId: String): Boolean {
-        return try {
-            val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
+    suspend fun blockUser(userId: String) {
+        val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
 
-            db.collection("profiles").document(currentUserId)
-                .update("blockedUsers", FieldValue.arrayUnion(blockedId))
-                .await()
+        db.collection("profiles").document(currentUserId)
+            .update("blockedUsers", FieldValue.arrayUnion(userId))
+            .await()
 
-            Log.d("FirebaseConnection", "User $blockedId successfully blocked by $currentUserId")
-            true
-        } catch (e: Exception) {
-            Log.e("FirebaseConnection", "Error blocking user", e)
-            false
+        Log.d("FirebaseConnection", "User $userId successfully blocked")
+    }
+
+    suspend fun unblockUser(userId: String) {
+        val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
+        val profileDoc = db.collection("profiles").document(currentUserId).get().await()
+
+        if (profileDoc.exists()) {
+            val blockedUsers = profileDoc.get("blockedUsers") as? List<String> ?: emptyList()
+
+            if (blockedUsers.contains(userId)) {
+                db.collection("profiles")
+                    .document(currentUserId)
+                    .update("blockedUsers", FieldValue.arrayRemove(userId))
+                    .await()
+            }
         }
+
+        Log.d("FirebaseConnection", "User $userId successfully unblocked")
     }
 
     // retrieve a list of blocked users for the given profile
@@ -328,8 +382,49 @@ class FirebaseConnection() {
     }
 
     // check if another profile is blocked
-    private suspend fun checkIfBlocked(otherUserId: String): Boolean {
+    suspend fun checkIfBlocked(otherUserId: String): Boolean {
         val blockedUsers = getBlockedUsers()
         return otherUserId in blockedUsers
     }
+
+    suspend fun sendVideo(videoURI: String, videoImageURI: String, groupId: String) {
+        try {
+            // First, upload the video to Firebase Storage
+            val messageId = db.collection("groups").document().id
+            val videoUrl = uploadVideo(videoURI, "groupMessages/$groupId/${messageId}.mp4")
+            val videoImageUrl = uploadImage(videoImageURI, "groupMessages/$groupId/${messageId}.jpg")
+
+            // Create a message object
+            val message = Message(
+                id = messageId,
+                senderID = user!!.uid,
+                videoImage = videoImageUrl,
+                video = videoUrl
+            )
+
+            // Add the message to the Firestore group messages collection
+            db.collection("groups")
+                .document(groupId)
+                .collection("messages")
+                .add(message)
+                .await()
+
+            Log.d("FirebaseConnection", "Video sent successfully: $videoUrl")
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error sending video", e)
+        }
+    }
+
+    private suspend fun uploadVideo(videoUri: String, storageLoc: String): String {
+        return try {
+            val storageRef = storage.reference
+            val videoRef = storageRef.child(storageLoc)
+            val uploadTask = videoRef.putFile(Uri.parse(videoUri)).await()
+            videoRef.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error uploading video", e)
+            throw e
+        }
+    }
+
 }

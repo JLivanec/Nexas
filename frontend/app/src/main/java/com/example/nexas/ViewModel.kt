@@ -50,6 +50,7 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
             ?: return "Error: Incorrect Username or Password"
 
         myProfile = tempProfile
+        fetchGroups()
         return ""
     }
 
@@ -96,8 +97,36 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         fetchGroups()
     }
 
-    fun sendVideo(video: MediaStore.Video) {
-        // TODO: Send video
+    suspend fun blockUser(profileID: String) {
+        try {
+            fb.blockUser(profileID)
+        }
+        catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error blocking user", e)
+        }
+    }
+
+    suspend fun unblockUser(profileID: String) {
+        try {
+            fb.unblockUser(profileID)
+        }
+        catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error unblocking user", e)
+        }
+    }
+
+    suspend fun isBlocked(profileID: String): Boolean {
+        return fb.checkIfBlocked(profileID)
+    }
+
+    suspend fun sendVideo(videoURI: String, videoImageURI: String, groupId: String) {
+        try {
+            fb.sendVideo(videoURI, videoImageURI, groupId)
+            fetchGroups()
+        }
+        catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error unblocking user", e)
+        }
     }
 
     fun findGroupById(targetId: String): Group? {

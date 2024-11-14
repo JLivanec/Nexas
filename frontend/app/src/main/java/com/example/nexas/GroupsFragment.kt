@@ -7,11 +7,13 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
@@ -39,6 +41,7 @@ class GroupsFragment : Fragment(), View.OnClickListener {
     private lateinit var settingsButton: LinearLayout
     private lateinit var createButton: FloatingActionButton
 
+    private lateinit var searchBar: EditText
     private lateinit var groupsRecycler: RecyclerView
     private lateinit var adapter: GroupAdapter
     private lateinit var myGroups: List<Group>
@@ -76,11 +79,16 @@ class GroupsFragment : Fragment(), View.OnClickListener {
         groupsRecycler.layoutManager = LinearLayoutManager(requireContext())
         groupsRecycler.adapter = adapter
 
-        // Observe the groups LiveData
         viewLifecycleOwner.lifecycleScope.launch {
-            model.fetchGroups()
             myGroups = model.getMyGroups()
             adapter.updateGroups(myGroups)
+        }
+
+        searchBar = binding.searchBar.searchBar
+
+        searchBar.addTextChangedListener { text ->
+            val query = text.toString()
+            adapter.filterGroups(query)
         }
 
         return view
@@ -129,7 +137,8 @@ class GroupsFragment : Fragment(), View.OnClickListener {
 
     // Group Adapter
     inner class GroupAdapter : RecyclerView.Adapter<GroupViewHolder>() {
-        private var groups = mutableListOf<Group>()
+        private var groups = listOf<Group>()
+        private var allGroups = listOf<Group>()
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
             val itemView = LayoutInflater.from(parent.context).inflate(R.layout.group_card, parent, false)
@@ -145,13 +154,17 @@ class GroupsFragment : Fragment(), View.OnClickListener {
         }
 
         fun updateGroups(newGroups: List<Group>) {
-            this.groups.clear()
-            this.groups.addAll(newGroups)
+            allGroups = newGroups
+            groups = allGroups
             notifyDataSetChanged()
         }
 
         fun filterGroups(query: String) {
-            // TODO: Search Groups
+            if (query.isEmpty())
+                groups = allGroups
+            else
+                groups = allGroups.filter { it.name.contains(query, ignoreCase = true) }
+            notifyDataSetChanged()
         }
     }
 

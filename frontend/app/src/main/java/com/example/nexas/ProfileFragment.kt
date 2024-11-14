@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -14,6 +15,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -21,6 +23,7 @@ import com.example.nexas.GroupProfileFragment.ProfileAdapter
 import com.example.nexas.databinding.FragmentProfileBinding
 import com.example.nexas.model.Profile
 import com.google.android.material.imageview.ShapeableImageView
+import kotlinx.coroutines.launch
 
 class ProfileFragment : Fragment(), View.OnClickListener {
 
@@ -43,6 +46,7 @@ class ProfileFragment : Fragment(), View.OnClickListener {
     private lateinit var profileLocation: TextView
     private lateinit var bioText: TextView
     private lateinit var backgroundImage: ShapeableImageView
+    private lateinit var blockButton: Button
 
 
     private lateinit var profileId: String
@@ -80,6 +84,7 @@ class ProfileFragment : Fragment(), View.OnClickListener {
         profileLocation = binding.profileLocation
         bioText = binding.bioText
         backgroundImage = binding.backgroundImage
+        blockButton = binding.blockButton
 
         homeButton.setOnClickListener(this)
         myProfileButton.setOnClickListener(this)
@@ -111,7 +116,26 @@ class ProfileFragment : Fragment(), View.OnClickListener {
         else
             backgroundImage.setImageResource(R.drawable.jordan_background)
 
+        if (profileId == model.myProfile.id)
+            blockButton.isEnabled = false
+        else {
+            blockButton.setOnClickListener(this)
+            updateBlockButton()
+        }
+
         return view
+    }
+
+    fun updateBlockButton() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (model.isBlocked(profileId)) {
+                blockButton.text = "Unblock User"
+                blockButton.setBackgroundColor(resources.getColor(R.color.mint))
+            } else {
+                blockButton.text = "Block User"
+                blockButton.setBackgroundColor(resources.getColor(R.color.red))
+            }
+        }
     }
 
     // handle click events
@@ -122,6 +146,15 @@ class ProfileFragment : Fragment(), View.OnClickListener {
             groupsButton.id -> {findNavController().navigate(R.id.action_profileFragment_to_groupsFragment)}
             settingsButton.id -> {findNavController().navigate(R.id.action_profileFragment_to_settingsFragment)}
             backButton.id -> {findNavController().navigateUp()}
+            blockButton.id -> {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    if (model.isBlocked(profileId))
+                        model.unblockUser(profileId)
+                    else
+                        model.blockUser(profileId)
+                    updateBlockButton()
+                }
+            }
         }
     }
 }

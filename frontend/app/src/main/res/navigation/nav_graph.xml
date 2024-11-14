@@ -48,7 +48,11 @@
             app:destination="@id/createGroupFragment" />
         <action
             android:id="@+id/action_homeFragment_to_groupProfileFragment"
-            app:destination="@id/groupProfileFragment" />
+            app:destination="@id/groupProfileFragment">
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+        </action>
     </fragment>
     <fragment
         android:id="@+id/myProfileFragment"
@@ -140,10 +144,24 @@
         </action>
         <action
             android:id="@+id/action_chatFragment_to_recordFragment"
-            app:destination="@id/recordFragment" />
+            app:destination="@id/recordFragment">
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+        </action>
         <action
             android:id="@+id/action_chatFragment_to_groupsFragment"
             app:destination="@id/groupsFragment" />
+        <action
+            android:id="@+id/action_chatFragment_to_watchFragment"
+            app:destination="@id/watchFragment">
+            <argument
+                android:name="videoImageURL"
+                app:argType="string" />
+            <argument
+                android:name="videoURL"
+                app:argType="string" />
+        </action>
     </fragment>
     <fragment
         android:id="@+id/profileFragment"
@@ -159,6 +177,9 @@
         <action
             android:id="@+id/action_profileFragment_to_myProfileFragment"
             app:destination="@id/myProfileFragment" />
+        <action
+            android:id="@+id/action_profileFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
     </fragment>
     <fragment
         android:id="@+id/groupProfileFragment"
@@ -192,5 +213,34 @@
         android:id="@+id/recordFragment"
         android:name="com.example.nexas.RecordFragment"
         android:label="fragment_record"
-        tools:layout="@layout/fragment_record" />
+        tools:layout="@layout/fragment_record" >
+        <action
+            android:id="@+id/action_recordFragment_to_previewFragment"
+            app:destination="@id/previewFragment">
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+            <argument
+                android:name="videoURI"
+                app:argType="string" />
+        </action>
+    </fragment>
+    <fragment
+        android:id="@+id/previewFragment"
+        android:name="com.example.nexas.PreviewFragment"
+        android:label="fragment_preview"
+        tools:layout="@layout/fragment_preview" >
+        <action
+            android:id="@+id/action_previewFragment_to_chatFragment"
+            app:destination="@id/chatFragment">
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+        </action>
+    </fragment>
+    <fragment
+        android:id="@+id/watchFragment"
+        android:name="com.example.nexas.WatchFragment"
+        android:label="fragment_watch"
+        tools:layout="@layout/fragment_watch" />
 </navigation>

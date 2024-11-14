@@ -1,11 +1,9 @@
 package com.example.nexas
 
+import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.PorterDuff
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -48,14 +46,6 @@ class ChatFragment : Fragment(), View.OnClickListener {
     private lateinit var groupId: String
     private lateinit var group: Group
 
-    // Camera permission
-    private val CAMERA_PERMISSION_CODE = 100
-
-    fun createSampleBitmap(): Bitmap {
-        return Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888).apply {
-            Canvas(this).drawColor(Color.RED)
-        }
-    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -111,7 +101,6 @@ class ChatFragment : Fragment(), View.OnClickListener {
         when (v?.id) {
             backButton.id -> {findNavController().navigateUp()}
             groupHeader.id -> {findNavController().navigate(ChatFragmentDirections.actionChatFragmentToGroupProfileFragment(groupId))}
-//            recordButton.id -> {Log.d("Chat", "Record")} // TODO: Setup recording
             recordButton.id -> checkCameraPermission()
         }
     }
@@ -120,7 +109,14 @@ class ChatFragment : Fragment(), View.OnClickListener {
         private val avatar: ImageView = itemView.findViewById(R.id.avatar)
         private val video: ImageView = itemView.findViewById(R.id.video)
 
+
         fun bind(message: Message) {
+            itemView.setOnClickListener {
+                findNavController().navigate(ChatFragmentDirections.actionChatFragmentToWatchFragment(
+                    videoImageURL = message.videoImage,
+                    videoURL = message.video
+                ))
+            }
             val member = group.members?.find { it.id == message.senderID }
             if (member != null) {
                 if (member.avatar.isNotBlank()) {
@@ -135,8 +131,14 @@ class ChatFragment : Fragment(), View.OnClickListener {
             else
                 avatar.setImageResource(R.drawable.account)
 
-            video.setImageBitmap(null)
-            video.setColorFilter(ContextCompat.getColor(video.context, R.color.box_background), PorterDuff.Mode.SRC_IN)
+            if (message.videoImage.isNotBlank()) {
+                Glide.with(itemView.context)
+                    .load(message.videoImage)
+                    .placeholder(R.drawable.account)
+                    .error(R.drawable.account)
+                    .into(video)
+            } else
+                video.setImageResource(R.drawable.account)
         }
     }
 
@@ -183,13 +185,10 @@ class ChatFragment : Fragment(), View.OnClickListener {
         _binding = null
     }
 
-    private fun navigateToRecordFragment() {
-        findNavController().navigate(R.id.action_chatFragment_to_recordFragment)
-    }
     private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             // Permission granted, navigate to RecordFragment
-            navigateToRecordFragment()
+            findNavController().navigate(ChatFragmentDirections.actionChatFragmentToRecordFragment(groupId))
         } else {
             // Permission denied, show a message
             Toast.makeText(requireContext(), "Camera permission is required to record video.", Toast.LENGTH_SHORT).show()
@@ -197,12 +196,12 @@ class ChatFragment : Fragment(), View.OnClickListener {
     }
 
     private fun checkCameraPermission() {
-        if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             // Request camera permission using the launcher
-            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         } else {
             // Permission is already granted, navigate to RecordFragment
-            navigateToRecordFragment()
+            findNavController().navigate(ChatFragmentDirections.actionChatFragmentToRecordFragment(groupId))
         }
     }
 

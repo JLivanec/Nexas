@@ -10,12 +10,12 @@
         android:id="@+id/nexas_name"
         android:layout_width="wrap_content"
         android:layout_height="40dp"
-        android:src="@drawable/nexas_name"
         android:layout_margin="16dp"
-        app:tint="@color/logo"
+        android:src="@drawable/nexas_name"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/logo" />
 
     <include
         android:id="@+id/search_bar"
@@ -26,14 +26,23 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/nexas_name" />
 
-    <include
-        android:id="@+id/tabs"
-        layout="@layout/tab_manager"
+    <View
+        android:id="@+id/seperating_line"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="2dp"
+        android:background="@android:color/white"
+        app:layout_constraintBottom_toBottomOf="@id/search_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/groupsRecycler"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/tabs"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/seperating_line" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/createButton"
@@ -46,5 +55,14 @@
         app:layout_constraintBottom_toTopOf="@+id/tabs"
         app:layout_constraintEnd_toEndOf="parent"
         app:backgroundTint="@color/mint" />
+
+    <include
+        android:id="@+id/tabs"
+        layout="@layout/tab_manager"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

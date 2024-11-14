@@ -176,6 +176,17 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
+    <Button
+        android:id="@+id/blockButton"
+        android:layout_width="160dp"
+        android:layout_height="56dp"
+        android:layout_margin="16dp"
+        android:text="Block User"
+        android:backgroundTint="@color/red"
+        app:layout_constraintBottom_toTopOf="@+id/tabs"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <!-- Bottom Navigation Bar -->
     <include
         android:id="@+id/tabs"

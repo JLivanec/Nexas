@@ -59,6 +59,8 @@ class LoginFragment : Fragment(), View.OnClickListener {
     // Handles login functionality
     private fun login() {
         viewLifecycleOwner.lifecycleScope.launch {
+            backButton.isEnabled = false
+            loginButton.isEnabled = false
             val error = model.login(
                 emailInput.text.toString(),
                 passwordInput.text.toString()
@@ -69,6 +71,10 @@ class LoginFragment : Fragment(), View.OnClickListener {
                 findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
             } else
                 Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+
+
+            backButton.isEnabled = true
+            loginButton.isEnabled = true
         }
     }
 

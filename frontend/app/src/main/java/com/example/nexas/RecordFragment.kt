@@ -2,17 +2,14 @@ package com.example.nexas
 
 import android.Manifest
 import android.content.ContentValues
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import androidx.fragment.app.Fragment
-import androidx.camera.core.ImageCapture
 import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.nexas.databinding.FragmentRecordBinding
 import java.util.concurrent.ExecutorService
@@ -23,10 +20,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.core.Preview
 import androidx.camera.core.CameraSelector
 import android.util.Log
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
-import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
@@ -35,24 +28,46 @@ import androidx.core.content.PermissionChecker
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import androidx.camera.view.PreviewView
-import java.nio.ByteBuffer
+import androidx.fragment.app.activityViewModels
+import androidx.navigation.fragment.findNavController
+import com.google.android.material.imageview.ShapeableImageView
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-typealias LumaListener = (luma: Double) -> Unit
-
-class RecordFragment : Fragment() {
+class RecordFragment : Fragment(), View.OnClickListener {
 
     private var _binding: FragmentRecordBinding? = null
     private val binding get() = _binding!!
 
-    private var imageCapture: ImageCapture? = null
+    // ViewModel
+    private val model: ViewModel by activityViewModels()
+
+    // UI elements
+    private lateinit var backButton: ImageButton
+    private lateinit var cameraSwitchButton: ShapeableImageView
+    private lateinit var cameraOffButton: ShapeableImageView
+    private lateinit var videoCaptureButton: ShapeableImageView
+
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
     private lateinit var cameraExecutor: ExecutorService
 
     private var isUsingBackCamera = true
+    private var isCameraOff = false
+
+    private lateinit var groupId: String
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let {
+            groupId = it.getString("groupId")?: ""
+        }
+        if (model.findMyGroupById(groupId) == null) {
+            Toast.makeText(context, "Error: Group not found", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -71,20 +86,53 @@ class RecordFragment : Fragment() {
             requestPermissions()
         }
 
-        // Set up the listeners for take photo and video capture buttons
-        binding.videoCaptureButton.setOnClickListener { captureVideo() }
+        backButton = binding.backButton
+        cameraOffButton = binding.cameraOffButton
+        cameraSwitchButton = binding.cameraSwitchButton
+        videoCaptureButton = binding.videoCaptureButton
 
-        binding.cameraSwitchButton.setOnClickListener { switchCamera() }
+        backButton.setOnClickListener(this)
+        cameraOffButton.setOnClickListener(this)
+        cameraSwitchButton.setOnClickListener(this)
+        videoCaptureButton.setOnClickListener(this)
 
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
+
+    // handle click events
+    override fun onClick(v: View?) {
+        when (v?.id) {
+            backButton.id -> {findNavController().navigateUp()}
+            cameraOffButton.id -> {toggleCameraOff()}
+            cameraSwitchButton.id -> {switchCamera()}
+            videoCaptureButton.id -> {captureVideo()}
+        }
+    }
+
+    private fun toggleCameraOff() {
+        isCameraOff = !isCameraOff
+
+        if (isCameraOff) {
+            binding.viewFinder.setBackgroundColor(resources.getColor(android.R.color.black))
+            cameraOffButton.setBackgroundColor(resources.getColor(android.R.color.white))
+            cameraOffButton.setColorFilter(resources.getColor(android.R.color.black), android.graphics.PorterDuff.Mode.SRC_IN)
+        } else {
+            binding.viewFinder.setBackgroundColor(resources.getColor(android.R.color.transparent))
+            cameraOffButton.setBackgroundColor(resources.getColor(android.R.color.transparent))
+            cameraOffButton.clearColorFilter()
+            startCamera()
+        }
+    }
+
 
     private fun switchCamera() {
         // Toggle the camera selection
         isUsingBackCamera = !isUsingBackCamera
 
         // Restart the camera with the new selection
-        startCamera()
+        if (!isCameraOff) {
+            startCamera()
+        }
     }
 
 
@@ -117,6 +165,7 @@ class RecordFragment : Fragment() {
             .Builder(requireContext().contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
             .setContentValues(contentValues)
             .build()
+
         recording = videoCapture.output
             .prepareRecording(requireContext(), mediaStoreOutputOptions)
             .apply {
@@ -131,26 +180,16 @@ class RecordFragment : Fragment() {
                 when(recordEvent) {
                     is VideoRecordEvent.Start -> {
                         binding.videoCaptureButton.apply {
-                            text = getString(R.string.stop_capture)
+                            setColorFilter(resources.getColor(R.color.red))
                             isEnabled = true
                         }
                     }
                     is VideoRecordEvent.Finalize -> {
                         if (!recordEvent.hasError()) {
-                            val msg = "Video capture succeeded: " +
-                                    "${recordEvent.outputResults.outputUri}"
-                            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT)
-                                .show()
-                            Log.d(TAG, msg)
-
-                            // Launch video player intent to watch the recorded video
-                            val videoUri = recordEvent.outputResults.outputUri
-                            videoUri?.let {
-                                val intent = Intent(Intent.ACTION_VIEW, videoUri).apply {
-                                    setDataAndType(videoUri, "video/mp4")
-                                }
-                                startActivity(intent)
-                            }
+                            findNavController().navigate(RecordFragmentDirections.actionRecordFragmentToPreviewFragment(
+                                groupId,
+                                recordEvent.outputResults.outputUri.toString()
+                            ))
                         } else {
                             recording?.close()
                             recording = null
@@ -158,7 +197,7 @@ class RecordFragment : Fragment() {
                                     "${recordEvent.error}")
                         }
                         binding.videoCaptureButton.apply {
-                            text = getString(R.string.start_capture)
+                            setColorFilter(resources.getColor(R.color.mint))
                             isEnabled = true
                         }
                     }
@@ -205,6 +244,13 @@ class RecordFragment : Fragment() {
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
+            // Select back camera as a default
+            val cameraSelector = if (isUsingBackCamera) {
+                CameraSelector.DEFAULT_BACK_CAMERA
+            } else {
+                CameraSelector.DEFAULT_FRONT_CAMERA
+            }
+
             // Preview
             val preview = Preview.Builder()
                 .build()
@@ -212,7 +258,6 @@ class RecordFragment : Fragment() {
                     it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
                 }
 
-            imageCapture = ImageCapture.Builder().build()
             val recorder = Recorder.Builder()
                 .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
                 .build()
@@ -221,18 +266,10 @@ class RecordFragment : Fragment() {
 
             binding.viewFinder.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
 
-            // Select back camera as a default
-            val cameraSelector = if (isUsingBackCamera) {
-                CameraSelector.DEFAULT_BACK_CAMERA
-            } else {
-                CameraSelector.DEFAULT_FRONT_CAMERA
-            }
-
-
             try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
-                    viewLifecycleOwner, cameraSelector, preview, imageCapture, videoCapture
+                    viewLifecycleOwner, cameraSelector, preview, videoCapture
                 )
 
             } catch (exc: Exception) {
