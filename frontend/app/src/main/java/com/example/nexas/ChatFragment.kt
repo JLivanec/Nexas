@@ -1,6 +1,7 @@
 package com.example.nexas
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -45,6 +46,8 @@ class ChatFragment : Fragment(), View.OnClickListener {
 
     private lateinit var groupId: String
     private lateinit var group: Group
+
+    private var cameraPermissionForScreen = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,8 +104,21 @@ class ChatFragment : Fragment(), View.OnClickListener {
         when (v?.id) {
             backButton.id -> {findNavController().navigateUp()}
             groupHeader.id -> {findNavController().navigate(ChatFragmentDirections.actionChatFragmentToGroupProfileFragment(groupId))}
-            recordButton.id -> checkCameraPermission()
+            recordButton.id -> showRecordOptionDialog()
         }
+    }
+
+    private fun showRecordOptionDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Choose Recording Option")
+            .setItems(arrayOf("Record with Screen", "Record without Screen")) { _, which ->
+                when (which) {
+                    0 -> checkCameraPermission(true) // Navigate to RecordFragment
+                    1 -> checkCameraPermission(false) // Navigate to PrivacyVideoFragment
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     inner class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -195,13 +211,22 @@ class ChatFragment : Fragment(), View.OnClickListener {
         }
     }
 
-    private fun checkCameraPermission() {
+    private fun checkCameraPermission(forScreen: Boolean) {
+        cameraPermissionForScreen = forScreen
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             // Request camera permission using the launcher
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         } else {
-            // Permission is already granted, navigate to RecordFragment
+            // Permission is already granted, navigate to the appropriate fragment
+            navigateToRecordingFragment(forScreen)
+        }
+    }
+
+    private fun navigateToRecordingFragment(forScreen: Boolean) {
+        if (forScreen) {
             findNavController().navigate(ChatFragmentDirections.actionChatFragmentToRecordFragment(groupId))
+        } else {
+            findNavController().navigate(ChatFragmentDirections.actionChatFragmentToPrivacyVideoFragment(groupId))
         }
     }
 

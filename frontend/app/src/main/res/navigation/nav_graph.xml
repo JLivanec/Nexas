@@ -162,6 +162,13 @@
                 android:name="videoURL"
                 app:argType="string" />
         </action>
+        <action
+            android:id="@+id/action_chatFragment_to_privacyVideoFragment"
+            app:destination="@id/privacyVideoFragment" >
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+        </action>
     </fragment>
     <fragment
         android:id="@+id/profileFragment"
@@ -243,4 +250,20 @@
         android:name="com.example.nexas.WatchFragment"
         android:label="fragment_watch"
         tools:layout="@layout/fragment_watch" />
+    <fragment
+        android:id="@+id/privacyVideoFragment"
+        android:name="com.example.nexas.PrivacyVideoFragment"
+        android:label="fragment_privacy_video"
+        tools:layout="@layout/fragment_privacy_video" >
+        <action
+            android:id="@+id/action_privacyVideoFragment_to_previewFragment"
+            app:destination="@id/previewFragment" >
+            <argument
+                android:name="groupId"
+                app:argType="string" />
+            <argument
+                android:name="videoURI"
+                app:argType="string" />
+        </action>
+    </fragment>
 </navigation>
