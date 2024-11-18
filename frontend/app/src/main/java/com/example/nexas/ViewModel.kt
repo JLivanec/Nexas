@@ -1,12 +1,20 @@
 package com.example.nexas
 
 import android.app.Application
+import android.content.Context
+import android.location.Address
+import android.location.Geocoder
 import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import com.example.nexas.data.CustomLocation
 import com.example.nexas.data.FirebaseConnection
+import com.example.nexas.data.stateAbbreviations
 import com.example.nexas.model.Group
 import com.example.nexas.model.Profile
+import kotlinx.serialization.json.Json
+import okio.IOException
+import java.util.Locale
 
 
 class ViewModel(application: Application) : AndroidViewModel(application) {
@@ -15,6 +23,24 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     lateinit var myProfile: Profile
     private var _groups = MutableLiveData<List<Group>>(emptyList())
     val groups: MutableLiveData<List<Group>> get() = _groups
+
+    private var _address: Address? = null
+    val address get() = _address
+    val locality: String get() = if (address != null) address!!.locality else "Error getting locality."
+    val state: String get() = if (address != null) stateAbbreviations.getOrDefault(address!!.adminArea, address!!.adminArea) else "Error getting state."
+
+
+    // Sets the address of the user on login
+    fun setAddress(context: Context) {
+        try {
+            val locationData = Json.decodeFromString<CustomLocation>(myProfile.location)
+            val geocoder = Geocoder(context, Locale.getDefault())
+            _address = geocoder.getFromLocation(locationData.latitude, locationData.longitude, 1)!![0]
+        }  catch (e : IOException) {
+            e.printStackTrace();
+            _address = null
+        }
+    }
 
     suspend fun createAccount(email: String, password: String, profile: Profile): String {
         val error = fb.createUser(email, password, profile)

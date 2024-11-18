@@ -16,4 +16,5 @@
     <string name="lastname_hint">Enter your last name</string>
     <string name="firstname_hint">Enter your first name</string>
     <string name="bio">Bio</string>
+    <string name="profile_location">%1$s, %2$s</string>
 </resources>

@@ -1,14 +1,10 @@
 package com.example.nexas
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.PorterDuff
-import android.location.Address
-import android.location.Geocoder
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,7 +14,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
@@ -33,9 +28,6 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.imageview.ShapeableImageView
 import kotlinx.coroutines.launch
-import java.io.IOException
-import java.util.Locale
-import android.Manifest
 
 
 class MyProfileFragment : Fragment(), View.OnClickListener {
@@ -111,91 +103,9 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
         stopEditing()
         updateView()
 
-        getLastLocation()
-
         return view
     }
 
-    private fun requestLocationPermission() {
-        if (ContextCompat.checkSelfPermission(
-                this.requireActivity(),
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            askPermission()
-            getLastLocation()
-        } else {
-            getLastLocation()
-        }
-    }
-
-    // Function to fetch the last known location
-    private fun getLastLocation() {
-        if (ContextCompat.checkSelfPermission(
-                this.requireActivity(),
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            fusedLocationProviderClient!!.lastLocation
-                .addOnSuccessListener { location ->
-                    if (location != null) {
-                        // Log the latitude and longitude
-                        Log.d("Location", "Latitude: " + location.latitude)
-                        Log.d("Location", "Longitude: " + location.longitude)
-
-                        // Use Geocoder to get detailed location information
-                        try {
-                            val geocoder = this.context?.let { Geocoder(it, Locale.getDefault()) }
-                            val addresses: List<Address>? =
-                                geocoder?.getFromLocation(location.latitude, location.longitude, 1)
-
-                            // Display location details on UI elements
-//                            latitude.setText("Latitude: " + addresses!![0].getLatitude())
-//                            longitude.setText("Longitude: " + addresses!![0].getLongitude())
-//                            address.setText("Address: " + addresses!![0].getAddressLine(0))
-                            profileLocation.setText("City: " + addresses!![0].locality)
-//                            country.setText("Country: " + addresses!![0].getCountryName())
-                            Log.d("Location", addresses[0].locality)
-                            // Log detailed location information
-                            Log.d("Location", "Addresses: $addresses")
-                        } catch (e: IOException) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-        }
-    }
-
-    private fun askPermission() {
-        ActivityCompat.requestPermissions(
-            this.requireActivity(),
-            arrayOf<String>(Manifest.permission.ACCESS_COARSE_LOCATION),
-            REQUEST_CODE
-        )
-    }
-
-    // Handle permission request result
-    @Deprecated("Deprecated in Java")
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // If permission granted, fetch the last known location
-                getLastLocation()
-            } else {
-                // If permission not granted, show a toast message
-                Toast.makeText(
-                    this.context,
-                    "Please provide the required permission",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
 
     private fun updateView() {
         if (model.myProfile.avatar != "") {
@@ -219,7 +129,7 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
 
         profileFirstName.setText(model.myProfile.firstName)
         profileLastName.setText(model.myProfile.lastName)
-        profileLocation.setText(model.myProfile.location)
+        profileLocation.setText(getString(R.string.profile_location, model.locality, model.state))
         bioText.setText(model.myProfile.description)
 
         if (model.myProfile.background != "") {
