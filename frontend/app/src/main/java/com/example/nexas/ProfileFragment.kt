@@ -2,7 +2,10 @@ package com.example.nexas
 
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.location.Address
+import android.location.Geocoder
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -24,6 +27,7 @@ import com.example.nexas.databinding.FragmentProfileBinding
 import com.example.nexas.model.Profile
 import com.google.android.material.imageview.ShapeableImageView
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class ProfileFragment : Fragment(), View.OnClickListener {
 
@@ -58,6 +62,7 @@ class ProfileFragment : Fragment(), View.OnClickListener {
             profileId = it.getString("profileId") ?: ""
         }
         if (model.findProfileById(profileId) == null) {
+            Log.d("Profile Screen", profileId)
             Toast.makeText(context, "Error: Profile not found", Toast.LENGTH_SHORT).show()
             findNavController().navigateUp()
         }
@@ -105,7 +110,7 @@ class ProfileFragment : Fragment(), View.OnClickListener {
 
         profileFirstName.text = profile.firstName
         profileLastName.text = profile.lastName
-        profileLocation.text = profile.location
+        profileLocation.text = getLocationName(profile.location.latitude, profile.location.longitude)
         bioText.text = profile.description
 
         if (profile.background != "") {
@@ -155,6 +160,26 @@ class ProfileFragment : Fragment(), View.OnClickListener {
                     updateBlockButton()
                 }
             }
+        }
+    }
+
+    private fun getLocationName(latitude: Double, longitude: Double): String {
+        if (latitude == 0.0 && longitude == 0.0)
+            return "Online"
+
+        try {
+            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+            val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
+
+            if (addresses.isNullOrEmpty())
+                return "Unknown"
+
+            val local = addresses[0].locality
+            val admin = addresses[0].adminArea
+
+            return "$local, $admin"
+        } catch (e: Exception) {
+            return "Unknown"
         }
     }
 }

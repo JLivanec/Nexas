@@ -1,5 +1,7 @@
 package com.example.nexas
 
+import android.location.Address
+import android.location.Geocoder
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -21,6 +23,7 @@ import com.example.nexas.databinding.FragmentGroupProfileBinding
 import com.example.nexas.model.Group
 import com.example.nexas.model.Profile
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class GroupProfileFragment : Fragment(), View.OnClickListener {
 
@@ -50,7 +53,7 @@ class GroupProfileFragment : Fragment(), View.OnClickListener {
         arguments?.let {
             groupId = it.getString("groupId")?: ""
         }
-        if (model.findGroupById(groupId) == null) {
+        if (model.findGroupById(groupId) == null && model.findMyGroupById(groupId) == null) {
             Toast.makeText(context, "Error: Group not found", Toast.LENGTH_SHORT).show()
             findNavController().navigate(R.id.action_groupProfileFragment_to_homeFragment)
         }
@@ -81,12 +84,15 @@ class GroupProfileFragment : Fragment(), View.OnClickListener {
     }
 
     fun updateGroupScreen() {
-        if (model.findGroupById(groupId) == null) {
+        if (model.findGroupById(groupId) != null) {
+            group = model.findGroupById(groupId)!!
+        } else if (model.findMyGroupById(groupId) != null) {
+            group = model.findMyGroupById(groupId)!!
+        } else {
             Toast.makeText(context, "Error: Group not found", Toast.LENGTH_SHORT).show()
-            findNavController().navigateUp()
+            findNavController().navigate(R.id.action_groupProfileFragment_to_homeFragment)
         }
 
-        group = model.findGroupById(groupId)!!
         profiles = group.members!!
         isMember = profiles.any { it.id == model.myProfile.id }
 
@@ -99,6 +105,7 @@ class GroupProfileFragment : Fragment(), View.OnClickListener {
         } else
             binding.groupAvatar.setImageResource(R.drawable.account)
         binding.groupName.text = group.name
+        binding.groupLocation.text = getLocationName(group.location.latitude, group.location.longitude)
         binding.descriptionText.text = group.description
         binding.membersTitle.text = "Members (${group.members?.size}/${group.membersLimit})"
         group.members?.let { adapter.updateProfiles(it) }
@@ -115,7 +122,12 @@ class GroupProfileFragment : Fragment(), View.OnClickListener {
     // Handles onClick Events
     override fun onClick(v: View?) {
         when (v?.id) {
-            backButton.id -> {findNavController().navigateUp()}
+            backButton.id -> {
+                if (model.findMyGroupById(groupId) != null)
+                    findNavController().navigate(GroupProfileFragmentDirections.actionGroupProfileFragmentToChatFragment(groupId))
+                else
+                    findNavController().navigate(R.id.action_groupProfileFragment_to_homeFragment)
+            }
             joinLeaveButton.id -> {
                 if (isMember){
                     viewLifecycleOwner.lifecycleScope.launch {
@@ -186,5 +198,25 @@ class GroupProfileFragment : Fragment(), View.OnClickListener {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun getLocationName(latitude: Double, longitude: Double): String {
+        if (latitude == 0.0 && longitude == 0.0)
+            return "Online"
+
+        try {
+            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+            val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
+
+            if (addresses.isNullOrEmpty())
+                return "Unknown"
+
+            val local = addresses[0].locality
+            val admin = addresses[0].adminArea
+
+            return "$local, $admin"
+        } catch (e: Exception) {
+            return "Unknown"
+        }
     }
 }
