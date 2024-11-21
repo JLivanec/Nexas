@@ -28,19 +28,6 @@
         app:layout_constraintTop_toTopOf="parent"
         app:tint="@color/white" />
 
-    <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/cameraSwitchButton"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_margin="16dp"
-        android:background="@android:color/transparent"
-        android:scaleType="fitCenter"
-        android:src="@drawable/swap"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:shapeAppearanceOverlay="@style/Circular"
-        app:tint="@color/white" />
-
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/videoCaptureButton"

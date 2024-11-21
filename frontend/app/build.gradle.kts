@@ -104,4 +104,7 @@ dependencies {
     implementation(libs.androidx.camera.video)
     implementation(libs.androidx.camera.view.v122)
     implementation(libs.androidx.camera.extensions)
+    implementation(libs.ffmpeg.kit.full)
+
+
 }

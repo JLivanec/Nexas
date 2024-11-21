@@ -7,6 +7,7 @@ cameraCoreVersion = "1.2.2"
 cameraLifecycle = "1.2.2"
 cameraView = "1.2.2"
 converterGson = "2.9.0"
+ffmpegKitFull = "5.1"
 firebaseBom = "33.5.1"
 firebaseUiAuth = "7.2.0"
 glide = "4.12.0"
@@ -26,6 +27,7 @@ material = "1.10.0"
 lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
 composeBom = "2024.04.01"
+mobileFfmpegFull = "4.4.LTS"
 mongodbDriverSync = "4.9.0"
 mongoJavaDriver = "3.12.8"
 mongoJavaDriverVersion = "3.0.3"
@@ -58,6 +60,7 @@ androidx-navigation-safe-args-gradle-plugin = { module = "androidx.navigation:na
 androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigationFragmentKtx" }
 bson-kotlinx = { module = "org.mongodb:bson-kotlinx", version.ref = "bsonKotlinx" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
+ffmpeg-kit-full = { module = "com.arthenica:ffmpeg-kit-full", version.ref = "ffmpegKitFull" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-ui-auth = { module = "com.firebaseui:firebase-ui-auth", version.ref = "firebaseUiAuth" }
@@ -83,6 +86,7 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+mobile-ffmpeg-full = { module = "com.arthenica:mobile-ffmpeg-full", version.ref = "mobileFfmpegFull" }
 mongo-java-driver = { module = "org.mongodb:mongo-java-driver", version.ref = "mongoJavaDriver" }
 mongo-java-driver-v303 = { module = "org.mongodb:mongo-java-driver", version.ref = "mongoJavaDriverVersion" }
 mongodb-driver-kotlin-coroutine = { module = "org.mongodb:mongodb-driver-kotlin-coroutine", version.ref = "bsonKotlinx" }

@@ -47,7 +47,6 @@ class RecordFragment : Fragment(), View.OnClickListener {
     // UI elements
     private lateinit var backButton: ImageButton
     private lateinit var cameraSwitchButton: ShapeableImageView
-    private lateinit var cameraOffButton: ShapeableImageView
     private lateinit var videoCaptureButton: ShapeableImageView
 
     private var videoCapture: VideoCapture<Recorder>? = null
@@ -87,12 +86,10 @@ class RecordFragment : Fragment(), View.OnClickListener {
         }
 
         backButton = binding.backButton
-        cameraOffButton = binding.cameraOffButton
         cameraSwitchButton = binding.cameraSwitchButton
         videoCaptureButton = binding.videoCaptureButton
 
         backButton.setOnClickListener(this)
-        cameraOffButton.setOnClickListener(this)
         cameraSwitchButton.setOnClickListener(this)
         videoCaptureButton.setOnClickListener(this)
 
@@ -103,24 +100,8 @@ class RecordFragment : Fragment(), View.OnClickListener {
     override fun onClick(v: View?) {
         when (v?.id) {
             backButton.id -> {findNavController().navigateUp()}
-            cameraOffButton.id -> {toggleCameraOff()}
             cameraSwitchButton.id -> {switchCamera()}
             videoCaptureButton.id -> {captureVideo()}
-        }
-    }
-
-    private fun toggleCameraOff() {
-        isCameraOff = !isCameraOff
-
-        if (isCameraOff) {
-            binding.viewFinder.setBackgroundColor(resources.getColor(android.R.color.black))
-            cameraOffButton.setBackgroundColor(resources.getColor(android.R.color.white))
-            cameraOffButton.setColorFilter(resources.getColor(android.R.color.black), android.graphics.PorterDuff.Mode.SRC_IN)
-        } else {
-            binding.viewFinder.setBackgroundColor(resources.getColor(android.R.color.transparent))
-            cameraOffButton.setBackgroundColor(resources.getColor(android.R.color.transparent))
-            cameraOffButton.clearColorFilter()
-            startCamera()
         }
     }
 
