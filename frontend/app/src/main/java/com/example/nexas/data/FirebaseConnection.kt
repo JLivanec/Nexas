@@ -10,6 +10,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.tasks.await
 
 class FirebaseConnection() {
@@ -20,8 +21,34 @@ class FirebaseConnection() {
     private var user: FirebaseUser? = auth.currentUser
 
     // Check if user is currently logged in
-    fun loggedIn(): Boolean {
-        return user != null
+    suspend fun loggedIn(): Profile? {
+        if (user != null) {
+            return try {
+                val document = db.collection("profiles")
+                    .document(user!!.uid)
+                    .get()
+                    .await()
+                Log.d("FirebaseConnection", "Signed in - Success")
+
+                // Construct profile
+                Profile(
+                    id = user!!.uid,
+                    username = document["username"].toString(),
+                    firstName = document["firstName"].toString(),
+                    lastName = document["lastName"].toString(),
+                    location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
+                    description = document["description"].toString(),
+                    avatar = document["avatar"].toString(),
+                    background = document["background"].toString(),
+                    age = document["age"].toString().toInt(),
+                )
+            } catch (e: Exception) {
+                Log.w("FirebaseConnection", "Login failed", e)
+                null
+            }
+        }
+
+        return null
     }
 
     // Login user
@@ -44,7 +71,7 @@ class FirebaseConnection() {
                 username = document["username"].toString(),
                 firstName = document["firstName"].toString(),
                 lastName = document["lastName"].toString(),
-                location = document["location"].toString(),
+                location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
                 description = document["description"].toString(),
                 avatar = document["avatar"].toString(),
                 background = document["background"].toString(),
@@ -92,7 +119,6 @@ class FirebaseConnection() {
         val profileData = mutableMapOf<String, Any?>(
             "firstName" to profile.firstName,
             "lastName" to profile.lastName,
-            "location" to profile.location,
             "description" to profile.description,
             "age" to profile.age
         )
@@ -107,6 +133,15 @@ class FirebaseConnection() {
 
         db.collection("profiles").document(user!!.uid).update(profileData).await()
         Log.d("FirebaseConnection", "Wrote user profile")
+    }
+
+    suspend fun setUserLocation(geoPoint: GeoPoint) {
+        val profileData = mutableMapOf<String, Any?>(
+            "location" to geoPoint
+        )
+
+        db.collection("profiles").document(user!!.uid).update(profileData).await()
+        Log.d("FirebaseConnection", "Updated user location")
     }
 
     // Create a new group with a random group ID
@@ -144,23 +179,28 @@ class FirebaseConnection() {
             .await()
 
         val groups = mutableListOf<Group>()
+        val currentUserId = user?.uid
 
         for (document in querySnapshot.documents) {
+            val memberIds = document.get("members") as? List<String> ?: emptyList()
+
+            // Check if the current user is a member of this group
+            if (memberIds.contains(currentUserId)) {
+                continue // Skip this group since the user is a member
+            }
+
             val group = Group(
                 id = document.id,
                 name = document.getString("name") ?: "",
                 avatar = document.getString("avatar") ?: "",
-                location = document.getString("location") ?: "",
+                location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
                 description = document.getString("description") ?: "",
                 membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
                 members = mutableListOf(),
                 messages = null
             )
 
-            val memberIds = document.get("members") as? List<*> ?: emptyList<String>()
-
             // Check if the current user is blocked by any member
-            val currentUserId = user?.uid
             var isBlockedByAnyMember = false
 
             for (memberId in memberIds) {
@@ -188,6 +228,7 @@ class FirebaseConnection() {
         return groups
     }
 
+
     // Helper function to get the blocked users for a specific member
     private suspend fun getBlockedUsersForMember(memberId: String): List<String> {
         return try {
@@ -213,7 +254,7 @@ class FirebaseConnection() {
                 id = document.id,
                 name = document.getString("name") ?: "",
                 avatar = document.getString("avatar") ?: "",
-                location = document.getString("location") ?: "",
+                location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
                 description = document.getString("description") ?: "",
                 membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
                 members = mutableListOf(),
@@ -263,9 +304,6 @@ class FirebaseConnection() {
         return groups
     }
 
-
-
-
     suspend fun getProfile(userID: String): Profile? {
         return try {
             val document = db.collection("profiles").document(userID).get().await()
@@ -276,7 +314,7 @@ class FirebaseConnection() {
                     username = document["username"].toString(),
                     firstName = document["firstName"].toString(),
                     lastName = document["lastName"].toString(),
-                    location = document["location"].toString(),
+                    location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
                     description = document["description"].toString(),
                     avatar = document["avatar"].toString(),
                     background = document["background"].toString(),

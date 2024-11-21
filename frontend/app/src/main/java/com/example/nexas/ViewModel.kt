@@ -1,12 +1,12 @@
 package com.example.nexas
 
 import android.app.Application
-import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.example.nexas.data.FirebaseConnection
 import com.example.nexas.model.Group
 import com.example.nexas.model.Profile
+import com.google.firebase.firestore.GeoPoint
 
 
 class ViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,19 +29,20 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
 
         if (error == "")
             myProfile = profile
-        else
+        else {
             myProfile = Profile(
                 id = "",
                 firstName = "",
                 lastName = "",
                 username = "",
-                location = "",
+                location = GeoPoint(0.0, 0.0),
                 description = "",
                 avatar = "",
                 background = "",
                 age = -1,
             )
-
+            fetchGroups()
+        }
         return error
     }
 
@@ -66,12 +67,9 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun createGroup(group: Group): String {
         return try {
-            val createdGroup = fb.createGroup(group)
-                ?: return "Error: Group creation failed"
+            fb.createGroup(group) ?: return "Error: Group creation failed"
 
-            val currentGroups = groups.toMutableList()
-            currentGroups.add(createdGroup)
-            groups = currentGroups
+            fetchGroups()
             ""
         } catch (e: Exception) {
             "Error: ${e.message}"
@@ -129,6 +127,12 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    suspend fun setUserLocation(latLng: com.google.android.gms.maps.model.LatLng) {
+        val geoPoint = GeoPoint(latLng.latitude, latLng.longitude)
+        fb.setUserLocation(geoPoint)
+        myProfile = fb.getProfile(myProfile.id)?: myProfile
+    }
+
     fun findGroupById(targetId: String): Group? {
         return groups.find { it.id == targetId }
     }
@@ -138,40 +142,26 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun findProfileById(targetId: String): Profile? {
-        return groups.flatMap { it.members!! }.find { it.id == targetId }
+        var user = myGroups.flatMap { it.members!! }.find { it.id == targetId }
+
+        if (user == null)
+            user = groups.flatMap { it.members!! }.find { it.id == targetId }
+
+        return user
     }
 
-//    suspend fun autoLogin(): Boolean {
-//        if (myProfile.hashedPassword != "") {
-//            val tempProfile = db.validateCredentials(myProfile.username, myProfile.hashedPassword)
-//                ?: return false
-//
-//            myProfile = tempProfile
-//            return true
-//        }
-//        return false
-//    }
+    suspend fun autoLogin(): Boolean {
+        val tempProfile = fb.loggedIn()
+        if (tempProfile != null) {
+            myProfile = tempProfile
+            fetchGroups()
+            return true
+        }
+        return false
+    }
 
-//    private suspend fun validateProfile(profile: Profile): String {
-//        if (profile.firstName == "" ||
-//            profile.firstName.contains(" "))
-//            return "Error: Invalid First Name (No spaces allowed)"
-//
-//        if (profile.lastName == "" ||
-//            profile.lastName.contains(" "))
-//            return "Error: Invalid Last Name (No spaces allowed)"
-//
-//        if (profile.username == "" ||
-//            profile.username.contains(" "))
-//            return "Error: Invalid Username (No spaces allowed)"
-//
-//        if (profile.email == "" || profile.email.contains(" "))
-//            return "Error: Invalid Email"
-//
-//        if (db.getProfileByUsername(profile.username) != null)
-//            return "Error: An account with this username already exists"
-//
-//        return ""
-//    }
+    fun logout() {
+        fb.logout()
+    }
 
 }

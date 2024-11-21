@@ -142,7 +142,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:padding="8dp"
-            android:backgroundTint="@color/box_background" >
+            android:background="@color/box_background" >
 
             <!-- Bio Title -->
             <TextView

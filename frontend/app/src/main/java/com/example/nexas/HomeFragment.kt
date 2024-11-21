@@ -1,15 +1,21 @@
 package com.example.nexas
 
 import android.graphics.PorterDuff
+import android.location.Address
+import android.location.Geocoder
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.activityViewModels
@@ -22,7 +28,9 @@ import com.example.nexas.GroupsFragment.GroupAdapter
 import com.example.nexas.databinding.FragmentHomeBinding
 import com.example.nexas.model.Group
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class HomeFragment : Fragment(), View.OnClickListener {
     // view binding
@@ -83,9 +91,30 @@ class HomeFragment : Fragment(), View.OnClickListener {
 
         searchBar = binding.searchBar.searchBar
 
+        // Initialize Spinner
+        val distanceInput: Spinner = binding.distanceInput
+        val options = arrayOf("Online", "10mi", "25mi", "50mi", "100mi")
+        val distAdapter = ArrayAdapter(requireContext(), R.layout.spinner_item, options)
+        distAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        distanceInput.adapter = distAdapter
+
+        var lastQuery = ""
         searchBar.addTextChangedListener { text ->
-            val query = text.toString()
-            adapter.filterGroups(query)
+            lastQuery = text.toString()
+            adapter.filterGroups(lastQuery, distanceInput.selectedItemPosition)
+        }
+
+        distanceInput.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                if (model.myProfile.location == GeoPoint(0.0, 0.0)) {
+                    distanceInput.setSelection(0) // Set to "Online"
+                    Toast.makeText(requireContext(), "Please set your location to filter by distance", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                adapter.filterGroups(lastQuery, position)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
         return view
@@ -127,7 +156,7 @@ class HomeFragment : Fragment(), View.OnClickListener {
             } else
                 groupImage.setImageResource(R.drawable.account)
             groupName.text = group.name
-            groupLocation.text = group.location
+            groupLocation.text = getLocationName(group.location.latitude, group.location.longitude)
             groupMembersLimit.text = "${group.members?.size}/${group.membersLimit}"
         }
     }
@@ -156,11 +185,36 @@ class HomeFragment : Fragment(), View.OnClickListener {
             notifyDataSetChanged()
         }
 
-        fun filterGroups(query: String) {
-            if (query.isEmpty())
-                groups = allGroups
-            else
-                groups = allGroups.filter { it.name.contains(query, ignoreCase = true) }
+        fun filterGroups(query: String, distance: Int) {
+            val userLocation = model.myProfile.location
+            groups = allGroups.filter { group ->
+                val matchesQuery = query.isEmpty() || group.name.contains(query, ignoreCase = true)
+                val matchesDistance = if (userLocation != GeoPoint(0.0, 0.0)) {
+                    val groupLocation = group.location
+                    val results = FloatArray(1)
+                    android.location.Location.distanceBetween(
+                        userLocation.latitude,
+                        userLocation.longitude,
+                        groupLocation.latitude,
+                        groupLocation.longitude,
+                        results
+                    )
+                    val distanceInMiles = results[0] * 0.000621371 // Convert meters to miles
+
+                    when (distance) {
+                        0 -> groupLocation == GeoPoint(0.0, 0.0) // Online
+                        1 -> distanceInMiles <= 10
+                        2 -> distanceInMiles <= 25
+                        3 -> distanceInMiles <= 50
+                        4 -> distanceInMiles <= 100
+                        else -> false
+                    }
+                } else {
+                    distance == 0 // If no location set, allow "Online" only
+                }
+
+                matchesQuery && matchesDistance
+            }
             notifyDataSetChanged()
         }
     }
@@ -169,5 +223,25 @@ class HomeFragment : Fragment(), View.OnClickListener {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun getLocationName(latitude: Double, longitude: Double): String {
+        if (latitude == 0.0 && longitude == 0.0)
+            return "Online"
+
+        try {
+            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+            val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
+
+            if (addresses.isNullOrEmpty())
+                return "Unknown"
+
+            val local = addresses[0].locality
+            val admin = addresses[0].adminArea
+
+            return "$local, $admin"
+        } catch (e: Exception) {
+            return "Unknown"
+        }
     }
 }

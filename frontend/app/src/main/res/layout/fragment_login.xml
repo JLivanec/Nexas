@@ -100,6 +100,7 @@
             android:layout_marginBottom="16dp"
             android:background="@drawable/rounded_background"
             android:backgroundTint="@color/box_background"
+            android:inputType="textPassword"
             android:hint="@string/password_hint"
             android:maxLines="1"
             android:padding="12dp"

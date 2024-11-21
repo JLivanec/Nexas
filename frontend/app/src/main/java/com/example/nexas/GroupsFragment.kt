@@ -2,6 +2,8 @@ package com.example.nexas
 
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.location.Address
+import android.location.Geocoder
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -25,6 +27,7 @@ import com.example.nexas.databinding.FragmentGroupsBinding
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.example.nexas.model.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class GroupsFragment : Fragment(), View.OnClickListener {
     // View binding
@@ -130,7 +133,7 @@ class GroupsFragment : Fragment(), View.OnClickListener {
             } else
                 groupImage.setImageResource(R.drawable.account)
             groupName.text = group.name
-            groupLocation.text = group.location
+            groupLocation.text = getLocationName(group.location.latitude, group.location.longitude)
             groupMembersLimit.text = "${group.members?.size}/${group.membersLimit}"
         }
     }
@@ -172,5 +175,25 @@ class GroupsFragment : Fragment(), View.OnClickListener {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun getLocationName(latitude: Double, longitude: Double): String {
+        if (latitude == 0.0 && longitude == 0.0)
+            return "Online"
+
+        try {
+            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+            val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
+
+            if (addresses.isNullOrEmpty())
+                return "Unknown"
+
+            val local = addresses[0].locality
+            val admin = addresses[0].adminArea
+
+            return "$local, $admin"
+        } catch (e: Exception) {
+            return "Unknown"
+        }
     }
 }

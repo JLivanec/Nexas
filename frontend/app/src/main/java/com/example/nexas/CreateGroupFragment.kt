@@ -152,7 +152,6 @@ class CreateGroupFragment : Fragment(), View.OnClickListener {
     // Create Group
     private fun createGroup() {
         val groupName = groupNameInput.text.toString()
-//        val groupAvatar = curAvatarURI?: ""
         val groupAvatar = curAvatarURI ?: Uri.parse("android.resource://${requireContext().packageName}/drawable/groups").toString()
         val groupDescription = groupDescriptionInput.text.toString()
         val maxMembers = maxMembersSpinner.selectedItem.toString().toInt()

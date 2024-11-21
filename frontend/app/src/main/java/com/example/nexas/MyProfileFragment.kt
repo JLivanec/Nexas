@@ -3,6 +3,8 @@ package com.example.nexas
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.location.Address
+import android.location.Geocoder
 import android.net.Uri
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -26,6 +28,7 @@ import com.example.nexas.model.Profile
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.imageview.ShapeableImageView
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class MyProfileFragment : Fragment(), View.OnClickListener {
     // view binding
@@ -43,7 +46,7 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
     private lateinit var profileImage: ShapeableImageView
     private lateinit var profileFirstName: EditText
     private lateinit var profileLastName: EditText
-    private lateinit var profileLocation: EditText
+    private lateinit var profileLocation: TextView
     private lateinit var bioText: EditText
     private lateinit var backgroundImage: ShapeableImageView
     private lateinit var editButton: FloatingActionButton
@@ -87,6 +90,7 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
         groupsButton.setOnClickListener(this)
         settingsButton.setOnClickListener(this)
         profileImage.setOnClickListener(this)
+        profileLocation.setOnClickListener(this)
         backgroundImage.setOnClickListener(this)
         editButton.setOnClickListener(this)
         cancelButton.setOnClickListener(this)
@@ -119,7 +123,7 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
 
         profileFirstName.setText(model.myProfile.firstName)
         profileLastName.setText(model.myProfile.lastName)
-        profileLocation.setText(model.myProfile.location)
+        profileLocation.text = getLocationName(model.myProfile.location.latitude, model.myProfile.location.longitude)
         bioText.setText(model.myProfile.description)
 
         if (model.myProfile.background != "") {
@@ -148,6 +152,31 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
                 }
                 startActivityForResult(intent, IMAGE_PICK_CODE)
             }
+            profileLocation.id -> {
+                stopEditing()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val error = model.updateProfile(
+                        Profile(
+                            id = model.myProfile.id,
+                            avatar = curAvatarURI ?: model.myProfile.avatar,
+                            username = model.myProfile.username,
+                            firstName = profileFirstName.text.toString(),
+                            lastName = profileLastName.text.toString(),
+                            location = model.myProfile.location,
+                            description = bioText.text.toString(),
+                            background = curBackgroundURI ?: model.myProfile.background,
+                            age = model.myProfile.age
+                        )
+                    )
+
+                    if (error == "")
+                        Toast.makeText(context, "Profile Updated!", Toast.LENGTH_SHORT).show()
+                    else
+                        Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+                    updateView()
+                    findNavController().navigate(R.id.action_myProfileFragment_to_mapFragment)
+                }
+            }
             backgroundImage.id -> {
                 val intent = Intent(Intent.ACTION_PICK).apply {
                     type = "image/*"
@@ -165,7 +194,7 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
                                 username = model.myProfile.username,
                                 firstName = profileFirstName.text.toString(),
                                 lastName = profileLastName.text.toString(),
-                                location = profileLocation.text.toString(),
+                                location = model.myProfile.location,
                                 description = bioText.text.toString(),
                                 background = curBackgroundURI ?: model.myProfile.background,
                                 age = model.myProfile.age
@@ -207,8 +236,6 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
         profileLastName.isFocusableInTouchMode = true
 
         profileLocation.isClickable = true
-        profileLocation.isFocusable = true
-        profileLocation.isFocusableInTouchMode = true
 
         bioText.isClickable = true
         bioText.isFocusable = true
@@ -233,8 +260,6 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
         profileLastName.isFocusableInTouchMode = false
 
         profileLocation.isClickable = false
-        profileLocation.isFocusable = false
-        profileLocation.isFocusableInTouchMode = false
 
         bioText.isClickable = false
         bioText.isFocusable = false
@@ -285,5 +310,25 @@ class MyProfileFragment : Fragment(), View.OnClickListener {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun getLocationName(latitude: Double, longitude: Double): String {
+        if (latitude == 0.0 && longitude == 0.0)
+            return "Online"
+
+        try {
+            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+            val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
+
+            if (addresses.isNullOrEmpty())
+                return "Unknown"
+
+            val local = addresses[0].locality
+            val admin = addresses[0].adminArea
+
+            return "$local, $admin"
+        } catch (e: Exception) {
+            return "Unknown"
+        }
     }
 }

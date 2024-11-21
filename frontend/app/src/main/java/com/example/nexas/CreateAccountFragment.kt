@@ -13,6 +13,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentCreateAccountBinding
 import androidx.lifecycle.lifecycleScope
+import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 
 
@@ -74,7 +75,7 @@ class CreateAccountFragment : Fragment(), View.OnClickListener {
             username = usernameInput.text.toString(),
             firstName = firstnameInput.text.toString(),
             lastName = lastNameInput.text.toString(),
-            location = "Online",
+            location = GeoPoint(0.0, 0.0),
             description = "",
             avatar = "",
             background = "",

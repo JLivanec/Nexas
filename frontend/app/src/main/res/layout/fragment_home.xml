@@ -26,12 +26,40 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/nexas_name" />
 
+    <TextView
+        android:id="@+id/distanceFilterLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:paddingBottom="16dp"
+        android:text="Filter by Distance:"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/seperating_line"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/search_bar" />
+
+    <Spinner
+        android:id="@+id/distanceInput"
+        android:layout_width="72dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginBottom="16dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_background"
+        android:backgroundTint="@color/box_background"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:gravity="center"
+        app:layout_constraintBottom_toTopOf="@+id/seperating_line"
+        app:layout_constraintStart_toEndOf="@+id/distanceFilterLabel"
+        app:layout_constraintTop_toBottomOf="@+id/search_bar" />
+
     <View
         android:id="@+id/seperating_line"
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:background="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="@id/search_bar"
+        app:layout_constraintBottom_toBottomOf="@id/distanceFilterLabel"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

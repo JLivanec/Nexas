@@ -51,10 +51,6 @@ class ChatFragment : Fragment(), View.OnClickListener {
         arguments?.let {
             groupId = it.getString("groupId")?: ""
         }
-        if (model.findMyGroupById(groupId) == null) {
-            Toast.makeText(context, "Error: Group not found", Toast.LENGTH_SHORT).show()
-            findNavController().navigate(R.id.action_chatFragment_to_groupsFragment)
-        }
     }
 
     override fun onCreateView(
@@ -72,6 +68,11 @@ class ChatFragment : Fragment(), View.OnClickListener {
         backButton.setOnClickListener(this)
         groupHeader.setOnClickListener(this)
         recordButton.setOnClickListener(this)
+
+        if (model.findMyGroupById(groupId) == null) {
+            Toast.makeText(context, "Error: Group not found", Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_chatFragment_to_groupsFragment)
+        }
 
         group = model.findMyGroupById(groupId)!!
 
@@ -99,7 +100,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
     // Handles onClick Events
     override fun onClick(v: View?) {
         when (v?.id) {
-            backButton.id -> {findNavController().navigateUp()}
+            backButton.id -> {findNavController().navigate(R.id.action_chatFragment_to_groupsFragment)}
             groupHeader.id -> {findNavController().navigate(ChatFragmentDirections.actionChatFragmentToGroupProfileFragment(groupId))}
             recordButton.id -> checkCameraPermission()
         }
