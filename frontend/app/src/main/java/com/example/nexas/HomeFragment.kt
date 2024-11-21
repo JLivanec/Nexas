@@ -51,6 +51,7 @@ class HomeFragment : Fragment(), View.OnClickListener {
     private lateinit var groupsRecycler: RecyclerView
     private lateinit var adapter: GroupAdapter
     private lateinit var groups: List<Group>
+    private var filteredGroups = listOf<Group>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -140,7 +141,7 @@ class HomeFragment : Fragment(), View.OnClickListener {
 
         init {
             itemView.setOnClickListener {
-                val group = groups[adapterPosition] // Get the selected group
+                val group = filteredGroups[adapterPosition] // Get the selected group
                 val action = HomeFragmentDirections.actionHomeFragmentToGroupProfileFragment(group.id)
                 findNavController().navigate(action)
             }
@@ -163,7 +164,6 @@ class HomeFragment : Fragment(), View.OnClickListener {
 
     // Group Adapter
     inner class GroupAdapter : RecyclerView.Adapter<GroupViewHolder>() {
-        private var groups = listOf<Group>()
         private var allGroups = listOf<Group>()
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
@@ -172,22 +172,22 @@ class HomeFragment : Fragment(), View.OnClickListener {
         }
 
         override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
-            holder.bind(groups[position])
+            holder.bind(filteredGroups[position])
         }
 
         override fun getItemCount(): Int {
-            return groups.size
+            return filteredGroups.size
         }
 
         fun updateGroups(newGroups: List<Group>) {
             allGroups = newGroups
-            groups = allGroups
+            filteredGroups = allGroups
             notifyDataSetChanged()
         }
 
         fun filterGroups(query: String, distance: Int) {
             val userLocation = model.myProfile.location
-            groups = allGroups.filter { group ->
+            filteredGroups = allGroups.filter { group ->
                 val matchesQuery = query.isEmpty() || group.name.contains(query, ignoreCase = true)
                 val matchesDistance = if (userLocation != GeoPoint(0.0, 0.0)) {
                     val groupLocation = group.location
