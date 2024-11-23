@@ -106,5 +106,7 @@ dependencies {
     implementation(libs.androidx.camera.extensions)
     implementation(libs.ffmpeg.kit.full)
 
+    implementation(libs.lifecycle.viewmodel.ktx)
+
 
 }
