@@ -6,7 +6,14 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.nexas.data.FirebaseConnection
 import com.example.nexas.model.Group
 import com.example.nexas.model.Profile
+import com.example.nexas.model.Message
 import com.google.firebase.firestore.GeoPoint
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.widget.Toast
 
 
 class ViewModel(application: Application) : AndroidViewModel(application) {
@@ -15,6 +22,10 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     lateinit var myProfile: Profile
     private var groups = listOf<Group>()
     private var myGroups = listOf<Group>()
+    private var previousMessages = listOf<Message>()
+    private val _messages = MutableLiveData<List<Message>>()
+    val messages: LiveData<List<Message>> get() = _messages
+    private var isFirstMessageCheck = true
 
     fun getGroups(): List<Group> {
         return groups
@@ -22,6 +33,10 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getMyGroups(): List<Group> {
         return myGroups
+    }
+
+    init {
+        fetchMessagesPeriodically()
     }
 
     suspend fun createAccount(email: String, password: String, profile: Profile): String {
@@ -150,6 +165,41 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         return user
     }
 
+    fun fetchMessagesPeriodically() {
+        viewModelScope.launch {
+            while (true) {
+                try {
+                    val myGroups = fb.getMyGroups()
+                    val newMessages = myGroups.flatMap {it.messages ?: emptyList()}
+
+                    // check to see if it's the first loop, if so, don't notify for non-new
+                    if (isFirstMessageCheck) {
+                        isFirstMessageCheck = false
+                        previousMessages = newMessages
+                    } else {
+                        // don't notify if the logged in user is the sender
+                        val newMessagesToNotify = newMessages.filter {message ->
+                            message.senderID != myProfile.id && !previousMessages.contains(message)
+                        }
+                        if (newMessagesToNotify.isNotEmpty()) {
+                            previousMessages = newMessages
+                            _messages.postValue(newMessages)
+                            newMessagesToNotify.forEach { message ->
+                                notification(message.senderID, message.videoImage ?: "none")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {}
+                delay(5000)
+            }
+        }
+    }
+
+    fun notification(senderId: String, thumbnail: String) {
+        //TODO: build out notification functionality
+        Toast.makeText(getApplication(), "New message from $senderId: $thumbnail", Toast.LENGTH_SHORT).show()
+    }
+
     suspend fun autoLogin(): Boolean {
         val tempProfile = fb.loggedIn()
         if (tempProfile != null) {
@@ -162,6 +212,10 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logout() {
         fb.logout()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
     }
 
 }
