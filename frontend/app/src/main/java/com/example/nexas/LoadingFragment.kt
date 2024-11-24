@@ -39,11 +39,14 @@ class LoadingFragment : Fragment(), View.OnClickListener {
         loginButton.setOnClickListener(this)
         createAccountButton.setOnClickListener(this)
 
-        // TODO: Allow auto login after removing fake base profile
-//        viewLifecycleOwner.lifecycleScope.launch {
-//            if (model.autoLogin())
-//                findNavController().navigate(R.id.action_loadingFragment_to_homeFragment)
-//        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            loginButton.isEnabled = false
+            createAccountButton.isEnabled = false
+            if (model.autoLogin())
+                findNavController().navigate(R.id.action_loadingFragment_to_homeFragment)
+            loginButton.isEnabled = true
+            createAccountButton.isEnabled = true
+        }
 
         return view
     }

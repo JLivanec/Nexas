@@ -1,6 +1,5 @@
 package com.example.nexas
-import NotificationHelper
-import android.content.Intent
+import com.example.nexas.model.*
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,10 +10,10 @@ import android.widget.ImageButton
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.nexas.databinding.FragmentCreateAccountBinding
-import com.example.nexas.model.*
+import androidx.lifecycle.lifecycleScope
+import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 
 
@@ -76,7 +75,7 @@ class CreateAccountFragment : Fragment(), View.OnClickListener {
             username = usernameInput.text.toString(),
             firstName = firstnameInput.text.toString(),
             lastName = lastNameInput.text.toString(),
-            location = "Online",
+            location = GeoPoint(0.0, 0.0),
             description = "",
             avatar = "",
             background = "",
@@ -88,26 +87,12 @@ class CreateAccountFragment : Fragment(), View.OnClickListener {
 
             if (error == "") {
                 Toast.makeText(context, "Account Created", Toast.LENGTH_SHORT).show()
-
-                notifyUser()
-
-
-
                 findNavController().navigate(R.id.action_createAccountFragment_to_homeFragment)
             }
             else
                 Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
         }
     }
-
-    private fun notifyUser() {
-        val notificationHelper = NotificationHelper(requireContext())
-        notificationHelper.sendNotification(
-            title = "Account Created",
-            message = "Welcome to Nexas, ${usernameInput.text}!"
-        )
-    }
-
 
     override fun onDestroyView() {
         super.onDestroyView()

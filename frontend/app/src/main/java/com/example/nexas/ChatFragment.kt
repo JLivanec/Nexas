@@ -1,9 +1,8 @@
 package com.example.nexas
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.PorterDuff
+import android.Manifest
+import android.app.AlertDialog
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -13,6 +12,8 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -22,7 +23,6 @@ import com.bumptech.glide.Glide
 import com.example.nexas.databinding.FragmentChatBinding
 import com.google.android.material.imageview.ShapeableImageView
 import com.example.nexas.model.*
-import java.time.Instant
 
 class ChatFragment : Fragment(), View.OnClickListener {
     // view binding
@@ -47,11 +47,8 @@ class ChatFragment : Fragment(), View.OnClickListener {
     private lateinit var groupId: String
     private lateinit var group: Group
 
-    fun createSampleBitmap(): Bitmap {
-        return Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888).apply {
-            Canvas(this).drawColor(Color.RED)
-        }
-    }
+    private var cameraPermissionForScreen = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -75,7 +72,12 @@ class ChatFragment : Fragment(), View.OnClickListener {
         groupHeader.setOnClickListener(this)
         recordButton.setOnClickListener(this)
 
-        group = model.findGroupById(groupId)!!
+        if (model.findMyGroupById(groupId) == null) {
+            Toast.makeText(context, "Error: Group not found", Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_chatFragment_to_groupsFragment)
+        }
+
+        group = model.findMyGroupById(groupId)!!
 
         // Set header
         if (group.avatar.isNotBlank()) {
@@ -101,17 +103,37 @@ class ChatFragment : Fragment(), View.OnClickListener {
     // Handles onClick Events
     override fun onClick(v: View?) {
         when (v?.id) {
-            backButton.id -> {findNavController().navigateUp()}
-            groupHeader.id -> {findNavController().navigate(R.id.action_chatFragment_to_groupProfileFragment)}
-            recordButton.id -> {Log.d("Chat", "Record")} // TODO: Setup recording
+            backButton.id -> {findNavController().navigate(R.id.action_chatFragment_to_groupsFragment)}
+            groupHeader.id -> {findNavController().navigate(ChatFragmentDirections.actionChatFragmentToGroupProfileFragment(groupId))}
+            recordButton.id -> showRecordOptionDialog()
         }
+    }
+
+    private fun showRecordOptionDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Choose Recording Option")
+            .setItems(arrayOf("Record with Screen", "Record without Screen")) { _, which ->
+                when (which) {
+                    0 -> checkCameraPermission(true) // Navigate to RecordFragment
+                    1 -> checkCameraPermission(false) // Navigate to PrivacyVideoFragment
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     inner class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val avatar: ImageView = itemView.findViewById(R.id.avatar)
         private val video: ImageView = itemView.findViewById(R.id.video)
 
+
         fun bind(message: Message) {
+            itemView.setOnClickListener {
+                findNavController().navigate(ChatFragmentDirections.actionChatFragmentToWatchFragment(
+                    videoImageURL = message.videoImage,
+                    videoURL = message.video
+                ))
+            }
             val member = group.members?.find { it.id == message.senderID }
             if (member != null) {
                 if (member.avatar.isNotBlank()) {
@@ -126,8 +148,14 @@ class ChatFragment : Fragment(), View.OnClickListener {
             else
                 avatar.setImageResource(R.drawable.account)
 
-            video.setImageBitmap(null)
-            video.setColorFilter(ContextCompat.getColor(video.context, R.color.box_background), PorterDuff.Mode.SRC_IN)
+            if (message.videoImage.isNotBlank()) {
+                Glide.with(itemView.context)
+                    .load(message.videoImage)
+                    .placeholder(R.drawable.account)
+                    .error(R.drawable.account)
+                    .into(video)
+            } else
+                video.setImageResource(R.drawable.account)
         }
     }
 
@@ -173,4 +201,34 @@ class ChatFragment : Fragment(), View.OnClickListener {
         super.onDestroyView()
         _binding = null
     }
+
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            // Permission granted, navigate to RecordFragment
+            findNavController().navigate(ChatFragmentDirections.actionChatFragmentToRecordFragment(groupId))
+        } else {
+            // Permission denied, show a message
+            Toast.makeText(requireContext(), "Camera permission is required to record video.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun checkCameraPermission(forScreen: Boolean) {
+        cameraPermissionForScreen = forScreen
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            // Request camera permission using the launcher
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            // Permission is already granted, navigate to the appropriate fragment
+            navigateToRecordingFragment(forScreen)
+        }
+    }
+
+    private fun navigateToRecordingFragment(forScreen: Boolean) {
+        if (forScreen) {
+            findNavController().navigate(ChatFragmentDirections.actionChatFragmentToRecordFragment(groupId))
+        } else {
+            findNavController().navigate(ChatFragmentDirections.actionChatFragmentToPrivacyVideoFragment(groupId))
+        }
+    }
+
 }

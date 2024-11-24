@@ -1,39 +1,63 @@
 package com.example.nexas
 
 import android.app.Application
-import android.provider.MediaStore
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
 import com.example.nexas.data.FirebaseConnection
 import com.example.nexas.model.Group
 import com.example.nexas.model.Profile
+import com.example.nexas.model.Message
+import com.google.firebase.firestore.GeoPoint
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.widget.Toast
 
 
 class ViewModel(application: Application) : AndroidViewModel(application) {
 
     private var fb = FirebaseConnection()
     lateinit var myProfile: Profile
-    private var _groups = MutableLiveData<List<Group>>(emptyList())
-    val groups: MutableLiveData<List<Group>> get() = _groups
+    private var groups = listOf<Group>()
+    private var myGroups = listOf<Group>()
+    private var previousMessages = listOf<Message>()
+    private val _messages = MutableLiveData<List<Message>>()
+    val messages: LiveData<List<Message>> get() = _messages
+    private var isFirstMessageCheck = true
+
+    fun getGroups(): List<Group> {
+        return groups
+    }
+
+    fun getMyGroups(): List<Group> {
+        return myGroups
+    }
+
+    init {
+        fetchMessagesPeriodically()
+    }
 
     suspend fun createAccount(email: String, password: String, profile: Profile): String {
         val error = fb.createUser(email, password, profile)
 
         if (error == "")
             myProfile = profile
-        else
+        else {
             myProfile = Profile(
                 id = "",
                 firstName = "",
                 lastName = "",
                 username = "",
-                location = "",
+                location = GeoPoint(0.0, 0.0),
                 description = "",
                 avatar = "",
                 background = "",
                 age = -1,
             )
-
+            fetchGroups()
+        }
         return error
     }
 
@@ -42,6 +66,7 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
             ?: return "Error: Incorrect Username or Password"
 
         myProfile = tempProfile
+        fetchGroups()
         return ""
     }
 
@@ -57,70 +82,140 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun createGroup(group: Group): String {
         return try {
-            val createdGroup = fb.createGroup(group)
-                ?: return "Error: Group creation failed"
+            fb.createGroup(group) ?: return "Error: Group creation failed"
 
-            val currentGroups = _groups.value?.toMutableList() ?: mutableListOf()
-            currentGroups.add(createdGroup)
-            _groups.value = currentGroups
+            fetchGroups()
             ""
         } catch (e: Exception) {
             "Error: ${e.message}"
         }
     }
 
-    suspend fun getGroups() {
+    suspend fun fetchGroups() {
         try {
-            val fetchedGroups = fb.getGroups()
-            _groups.value = fetchedGroups
+            groups = fb.getGroups()
+            myGroups = fb.getMyGroups()
         } catch (e: Exception) {
-            // Handle errors if needed
+            Log.e("FirebaseConnection", "Error fetching groups", e)
         }
     }
 
-    fun joinGroup(groupID: String) {
-        // TODO: Join group
+    suspend fun joinGroup(groupID: String) {
+        fb.joinGroup(groupID)
+        fetchGroups()
     }
 
-    fun sendVideo(video: MediaStore.Video) {
-        // TODO: Send video
+    suspend fun leaveGroup(groupID: String) {
+        fb.leaveGroup(groupID)
+        fetchGroups()
+    }
+
+    suspend fun blockUser(profileID: String) {
+        try {
+            fb.blockUser(profileID)
+        }
+        catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error blocking user", e)
+        }
+    }
+
+    suspend fun unblockUser(profileID: String) {
+        try {
+            fb.unblockUser(profileID)
+        }
+        catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error unblocking user", e)
+        }
+    }
+
+    suspend fun isBlocked(profileID: String): Boolean {
+        return fb.checkIfBlocked(profileID)
+    }
+
+    suspend fun sendVideo(videoURI: String, videoImageURI: String, groupId: String) {
+        try {
+            fb.sendVideo(videoURI, videoImageURI, groupId)
+            fetchGroups()
+        }
+        catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error unblocking user", e)
+        }
+    }
+
+    suspend fun setUserLocation(latLng: com.google.android.gms.maps.model.LatLng) {
+        val geoPoint = GeoPoint(latLng.latitude, latLng.longitude)
+        fb.setUserLocation(geoPoint)
+        myProfile = fb.getProfile(myProfile.id)?: myProfile
     }
 
     fun findGroupById(targetId: String): Group? {
-        return groups.value?.find { it.id == targetId }
+        return groups.find { it.id == targetId }
     }
 
-//    suspend fun autoLogin(): Boolean {
-//        if (myProfile.hashedPassword != "") {
-//            val tempProfile = db.validateCredentials(myProfile.username, myProfile.hashedPassword)
-//                ?: return false
-//
-//            myProfile = tempProfile
-//            return true
-//        }
-//        return false
-//    }
+    fun findMyGroupById(targetId: String): Group? {
+        return myGroups.find { it.id == targetId }
+    }
 
-//    private suspend fun validateProfile(profile: Profile): String {
-//        if (profile.firstName == "" ||
-//            profile.firstName.contains(" "))
-//            return "Error: Invalid First Name (No spaces allowed)"
-//
-//        if (profile.lastName == "" ||
-//            profile.lastName.contains(" "))
-//            return "Error: Invalid Last Name (No spaces allowed)"
-//
-//        if (profile.username == "" ||
-//            profile.username.contains(" "))
-//            return "Error: Invalid Username (No spaces allowed)"
-//
-//        if (profile.email == "" || profile.email.contains(" "))
-//            return "Error: Invalid Email"
-//
-//        if (db.getProfileByUsername(profile.username) != null)
-//            return "Error: An account with this username already exists"
-//
-//        return ""
-//    }
+    fun findProfileById(targetId: String): Profile? {
+        var user = myGroups.flatMap { it.members!! }.find { it.id == targetId }
+
+        if (user == null)
+            user = groups.flatMap { it.members!! }.find { it.id == targetId }
+
+        return user
+    }
+
+    fun fetchMessagesPeriodically() {
+        viewModelScope.launch {
+            while (true) {
+                try {
+                    val myGroups = fb.getMyGroups()
+                    val newMessages = myGroups.flatMap {it.messages ?: emptyList()}
+
+                    // check to see if it's the first loop, if so, don't notify for non-new
+                    if (isFirstMessageCheck) {
+                        isFirstMessageCheck = false
+                        previousMessages = newMessages
+                    } else {
+                        // don't notify if the logged in user is the sender
+                        val newMessagesToNotify = newMessages.filter {message ->
+                            message.senderID != myProfile.id && !previousMessages.contains(message)
+                        }
+                        if (newMessagesToNotify.isNotEmpty()) {
+                            previousMessages = newMessages
+                            _messages.postValue(newMessages)
+                            newMessagesToNotify.forEach { message ->
+                                notification(message.senderID, message.videoImage ?: "none")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {}
+                delay(5000)
+            }
+        }
+    }
+
+    fun notification(senderId: String, thumbnail: String) {
+        //TODO: build out notification functionality
+        Toast.makeText(getApplication(), "New message from $senderId: $thumbnail", Toast.LENGTH_SHORT).show()
+    }
+
+    suspend fun autoLogin(): Boolean {
+        val tempProfile = fb.loggedIn()
+        if (tempProfile != null) {
+            myProfile = tempProfile
+            fetchGroups()
+            return true
+        }
+        return false
+    }
+
+    fun logout() {
+        fb.logout()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+    }
 
 }

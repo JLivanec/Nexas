@@ -10,6 +10,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.tasks.await
 
 class FirebaseConnection() {
@@ -20,8 +21,34 @@ class FirebaseConnection() {
     private var user: FirebaseUser? = auth.currentUser
 
     // Check if user is currently logged in
-    fun loggedIn(): Boolean {
-        return user != null
+    suspend fun loggedIn(): Profile? {
+        if (user != null) {
+            return try {
+                val document = db.collection("profiles")
+                    .document(user!!.uid)
+                    .get()
+                    .await()
+                Log.d("FirebaseConnection", "Signed in - Success")
+
+                // Construct profile
+                Profile(
+                    id = user!!.uid,
+                    username = document["username"].toString(),
+                    firstName = document["firstName"].toString(),
+                    lastName = document["lastName"].toString(),
+                    location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
+                    description = document["description"].toString(),
+                    avatar = document["avatar"].toString(),
+                    background = document["background"].toString(),
+                    age = document["age"].toString().toInt(),
+                )
+            } catch (e: Exception) {
+                Log.w("FirebaseConnection", "Login failed", e)
+                null
+            }
+        }
+
+        return null
     }
 
     // Login user
@@ -44,7 +71,7 @@ class FirebaseConnection() {
                 username = document["username"].toString(),
                 firstName = document["firstName"].toString(),
                 lastName = document["lastName"].toString(),
-                location = document["location"].toString(),
+                location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
                 description = document["description"].toString(),
                 avatar = document["avatar"].toString(),
                 background = document["background"].toString(),
@@ -92,7 +119,6 @@ class FirebaseConnection() {
         val profileData = mutableMapOf<String, Any?>(
             "firstName" to profile.firstName,
             "lastName" to profile.lastName,
-            "location" to profile.location,
             "description" to profile.description,
             "age" to profile.age
         )
@@ -109,7 +135,14 @@ class FirebaseConnection() {
         Log.d("FirebaseConnection", "Wrote user profile")
     }
 
+    suspend fun setUserLocation(geoPoint: GeoPoint) {
+        val profileData = mutableMapOf<String, Any?>(
+            "location" to geoPoint
+        )
 
+        db.collection("profiles").document(user!!.uid).update(profileData).await()
+        Log.d("FirebaseConnection", "Updated user location")
+    }
 
     // Create a new group with a random group ID
     suspend fun createGroup(group: Group): Group? {
@@ -141,28 +174,45 @@ class FirebaseConnection() {
 
     // Fetches groups based on user id
     suspend fun getGroups(): List<Group> {
-        return try {
-            val querySnapshot = db.collection("groups")
-                .whereArrayContains("members", user!!.uid)
-                .get()
-                .await()
+        val querySnapshot = db.collection("groups")
+            .get()
+            .await()
 
-            val groups = mutableListOf<Group>()
+        val groups = mutableListOf<Group>()
+        val currentUserId = user?.uid
 
-            for (document in querySnapshot.documents) {
-                val group = Group(
-                    id = document.id,
-                    name = document.getString("name") ?: "",
-                    avatar = document.getString("avatar") ?: "",
-                    location = document.getString("location") ?: "",
-                    description = document.getString("description") ?: "",
-                    membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
-                    members = mutableListOf(),
-                    messages = mutableListOf()
-                )
+        for (document in querySnapshot.documents) {
+            val memberIds = document.get("members") as? List<String> ?: emptyList()
 
-                val memberIds = document.get("members") as? List<*> ?: emptyList<String>()
+            // Check if the current user is a member of this group
+            if (memberIds.contains(currentUserId)) {
+                continue // Skip this group since the user is a member
+            }
 
+            val group = Group(
+                id = document.id,
+                name = document.getString("name") ?: "",
+                avatar = document.getString("avatar") ?: "",
+                location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
+                description = document.getString("description") ?: "",
+                membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
+                members = mutableListOf(),
+                messages = null
+            )
+
+            // Check if the current user is blocked by any member
+            var isBlockedByAnyMember = false
+
+            for (memberId in memberIds) {
+                val blockedUsers = getBlockedUsersForMember(memberId.toString())
+                if (blockedUsers.contains(currentUserId)) {
+                    isBlockedByAnyMember = true
+                    break // No need to check further if blocked by one member
+                }
+            }
+
+            // Only add the group if the current user is not blocked by any member
+            if (!isBlockedByAnyMember) {
                 val memberProfiles = memberIds.mapNotNull { memberId ->
                     runCatching {
                         getProfile(memberId.toString())
@@ -170,42 +220,101 @@ class FirebaseConnection() {
                 }
 
                 group.members = memberProfiles.toMutableList()
-
-                val messagesSnapshot = db.collection("groups")
-                    .document(document.id)
-                    .collection("messages")
-                    .get()
-                    .await()
-
-                group.messages = messagesSnapshot.documents.map { messageDoc ->
-                    messageDoc.toObject(Message::class.java) // Assuming Message class is defined
-                }.filterNotNull().toMutableList()
-
                 groups.add(group)
             }
+        }
 
-            Log.d("FirebaseConnection", "Fetched groups: ${groups.size}")
-            groups
+        Log.d("FirebaseConnection", "Fetched groups: ${groups.size}")
+        return groups
+    }
+
+
+    // Helper function to get the blocked users for a specific member
+    private suspend fun getBlockedUsersForMember(memberId: String): List<String> {
+        return try {
+            val document = db.collection("profiles").document(memberId).get().await()
+            document.get("blockedUsers") as? List<String> ?: emptyList()
         } catch (e: Exception) {
-            Log.e("FirebaseConnection", "Error fetching groups", e)
+            Log.e("FirebaseConnection", "Error retrieving blocked users for member $memberId", e)
             emptyList()
         }
     }
 
+
+    suspend fun getMyGroups(): List<Group> {
+        val querySnapshot = db.collection("groups")
+            .whereArrayContains("members", user!!.uid)
+            .get()
+            .await()
+
+        val groups = mutableListOf<Group>()
+
+        for (document in querySnapshot.documents) {
+            val group = Group(
+                id = document.id,
+                name = document.getString("name") ?: "",
+                avatar = document.getString("avatar") ?: "",
+                location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
+                description = document.getString("description") ?: "",
+                membersLimit = document.getLong("membersLimit")?.toInt() ?: 0,
+                members = mutableListOf(),
+                messages = mutableListOf()
+            )
+
+            val memberIds = document.get("members") as? List<*> ?: emptyList<String>()
+
+            val memberProfiles = memberIds.mapNotNull { memberId ->
+                runCatching {
+                    getProfile(memberId.toString())
+                }.getOrNull()
+            }
+
+            group.members = memberProfiles.toMutableList()
+
+            // Fetch messages from Firestore
+            val messagesSnapshot = db.collection("groups")
+                .document(document.id)
+                .collection("messages")
+                .get()
+                .await()
+
+            // Manually create Message objects
+            val messages = messagesSnapshot.documents.mapNotNull { messageDoc ->
+                val id = messageDoc.id
+                val senderID = messageDoc.getString("senderID") ?: return@mapNotNull null
+                val videoImage = messageDoc.getString("videoImage") ?: return@mapNotNull null
+                val video = messageDoc.getString("video") ?: return@mapNotNull null
+                val timestamp = messageDoc.getTimestamp("timestamp") ?: return@mapNotNull null
+                Message(
+                    id = id,
+                    senderID = senderID,
+                    videoImage = videoImage,
+                    video = video,
+                    timestamp = timestamp
+                )
+
+            }
+
+            group.messages = messages.sortedBy { it.timestamp.toDate() }.toMutableList()
+
+            groups.add(group)
+        }
+
+        Log.d("FirebaseConnection", "Fetched my groups: ${groups.size}")
+        return groups
+    }
+
     suspend fun getProfile(userID: String): Profile? {
         return try {
-            // Retrieve the profile document from Firestore
             val document = db.collection("profiles").document(userID).get().await()
 
-            // Check if the document exists
             if (document.exists()) {
-                // Construct and return the Profile object
                 Profile(
                     id = userID,
                     username = document["username"].toString(),
                     firstName = document["firstName"].toString(),
                     lastName = document["lastName"].toString(),
-                    location = document["location"].toString(),
+                    location = document.getGeoPoint("location") ?: GeoPoint(0.0, 0.0),
                     description = document["description"].toString(),
                     avatar = document["avatar"].toString(),
                     background = document["background"].toString(),
@@ -221,6 +330,40 @@ class FirebaseConnection() {
         }
     }
 
+    suspend fun joinGroup(groupId: String) {
+        val userId = user!!.uid
+        val groupDoc = db.collection("groups").document(groupId).get().await()
+
+        if (groupDoc.exists()) {
+            val members = groupDoc.get("members") as? List<String> ?: emptyList()
+
+            if (!members.contains(userId)) {
+                db.collection("groups")
+                    .document(groupId)
+                    .update("members", FieldValue.arrayUnion(userId))
+                    .await()
+            }
+        }
+    }
+
+
+    suspend fun leaveGroup(groupId: String) {
+        val userId = user!!.uid
+        val groupDoc = db.collection("groups").document(groupId).get().await()
+
+        if (groupDoc.exists()) {
+            val members = groupDoc.get("members") as? List<String> ?: emptyList()
+
+            if (members.contains(userId)) {
+                // Remove the user from the group
+                db.collection("groups")
+                    .document(groupId)
+                    .update("members", FieldValue.arrayRemove(userId))
+                    .await()
+            }
+        }
+    }
+
     private suspend fun uploadImage(imageUri: String, storageLoc: String): String {
         return try {
             val storageRef = storage.reference
@@ -233,21 +376,34 @@ class FirebaseConnection() {
         }
     }
 
+
     // add a blocked user to the list of blocked users contained in the BlockedProfiles object
-    private suspend fun addBlockedUser(blockedId: String): Boolean {
-        return try {
-            val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
+    suspend fun blockUser(userId: String) {
+        val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
 
-            db.collection("profiles").document(currentUserId)
-                .update("blockedUsers", FieldValue.arrayUnion(blockedId))
-                .await()
+        db.collection("profiles").document(currentUserId)
+            .update("blockedUsers", FieldValue.arrayUnion(userId))
+            .await()
 
-            Log.d("FirebaseConnection", "User $blockedId successfully blocked by $currentUserId")
-            true
-        } catch (e: Exception) {
-            Log.e("FirebaseConnection", "Error blocking user", e)
-            false
+        Log.d("FirebaseConnection", "User $userId successfully blocked")
+    }
+
+    suspend fun unblockUser(userId: String) {
+        val currentUserId = user?.uid ?: throw Exception("User is not logged in!")
+        val profileDoc = db.collection("profiles").document(currentUserId).get().await()
+
+        if (profileDoc.exists()) {
+            val blockedUsers = profileDoc.get("blockedUsers") as? List<String> ?: emptyList()
+
+            if (blockedUsers.contains(userId)) {
+                db.collection("profiles")
+                    .document(currentUserId)
+                    .update("blockedUsers", FieldValue.arrayRemove(userId))
+                    .await()
+            }
         }
+
+        Log.d("FirebaseConnection", "User $userId successfully unblocked")
     }
 
     // retrieve a list of blocked users for the given profile
@@ -264,8 +420,49 @@ class FirebaseConnection() {
     }
 
     // check if another profile is blocked
-    private suspend fun checkIfBlocked(otherUserId: String): Boolean {
+    suspend fun checkIfBlocked(otherUserId: String): Boolean {
         val blockedUsers = getBlockedUsers()
         return otherUserId in blockedUsers
     }
+
+    suspend fun sendVideo(videoURI: String, videoImageURI: String, groupId: String) {
+        try {
+            // First, upload the video to Firebase Storage
+            val messageId = db.collection("groups").document().id
+            val videoUrl = uploadVideo(videoURI, "groupMessages/$groupId/${messageId}.mp4")
+            val videoImageUrl = uploadImage(videoImageURI, "groupMessages/$groupId/${messageId}.jpg")
+
+            // Create a message object
+            val message = Message(
+                id = messageId,
+                senderID = user!!.uid,
+                videoImage = videoImageUrl,
+                video = videoUrl
+            )
+
+            // Add the message to the Firestore group messages collection
+            db.collection("groups")
+                .document(groupId)
+                .collection("messages")
+                .add(message)
+                .await()
+
+            Log.d("FirebaseConnection", "Video sent successfully: $videoUrl")
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error sending video", e)
+        }
+    }
+
+    private suspend fun uploadVideo(videoUri: String, storageLoc: String): String {
+        return try {
+            val storageRef = storage.reference
+            val videoRef = storageRef.child(storageLoc)
+            val uploadTask = videoRef.putFile(Uri.parse(videoUri)).await()
+            videoRef.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error uploading video", e)
+            throw e
+        }
+    }
+
 }

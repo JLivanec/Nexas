@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
     id("androidx.navigation.safeargs.kotlin")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
     kotlin("plugin.serialization") version "1.9.0"
 }
 
@@ -47,6 +48,12 @@ android {
         exclude("META-INF/native-image/native-image.properties")
         exclude("META-INF/native-image/reflect-config.json")
     }
+    secrets {
+        propertiesFileName = "secrets.properties"
+        defaultPropertiesFileName = "local.properties"
+        ignoreList.add("sdk.*")       // Ignore all keys matching the regexp "sdk.*"
+    }
+
 }
 
 dependencies {
@@ -62,6 +69,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.play.services.location)
+    implementation(libs.play.services.maps)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -89,9 +98,15 @@ dependencies {
     implementation (libs.glide)
 
     // Recording
-    implementation(libs.androidx.camera.core)
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle)
-    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.core.v122)
+    implementation(libs.androidx.camera.camera2.v122)
+    implementation(libs.androidx.camera.lifecycle.v122)
+    implementation(libs.androidx.camera.video)
+    implementation(libs.androidx.camera.view.v122)
+    implementation(libs.androidx.camera.extensions)
+    implementation(libs.ffmpeg.kit.full)
+
+    implementation(libs.lifecycle.viewmodel.ktx)
+
 
 }
