@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -126,6 +127,9 @@ class ChatFragment : Fragment(), View.OnClickListener {
         private val avatar: ImageView = itemView.findViewById(R.id.avatar)
         private val video: ImageView = itemView.findViewById(R.id.video)
 
+        private val heartButton: ImageView = itemView.findViewById(R.id.heartButton)
+        private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
+
 
         fun bind(message: Message) {
             itemView.setOnClickListener {
@@ -156,7 +160,38 @@ class ChatFragment : Fragment(), View.OnClickListener {
                     .into(video)
             } else
                 video.setImageResource(R.drawable.account)
+
+            var isLikedByCurrentUser = message.likedBy.contains(model.myProfile.id)
+
+            likeCount.text = "${message.likedBy.size}"
+            heartButton.setImageResource(
+                if (isLikedByCurrentUser) R.drawable.ic_heart_checked else R.drawable.ic_heart
+            )
+
+            heartButton.setOnClickListener {
+                if (isLikedByCurrentUser) {
+                    // Unlike the message
+                    model.unlikeMessage(groupId, message.id)
+                    message.likedBy.remove(model.myProfile.id)
+                    isLikedByCurrentUser = false
+                    Log.d("ChatViewHolder", "Unliked UserID: ${model.myProfile.id}")
+                } else {
+                    // Like the message
+                    model.likeMessage(groupId, message.id)
+                    message.likedBy.add(model.myProfile.id)
+                    isLikedByCurrentUser = true
+                    Log.d("ChatViewHolder", "liked UserID: ${model.myProfile.id}")
+                }
+                Log.d("ChatViewHolder", "Updated likedBy List: ${message.likedBy}")
+
+                likeCount.text = "${message.likedBy.size}"
+                heartButton.setImageResource(
+                    if (message.likedBy.contains(model.myProfile.id)) R.drawable.ic_heart_checked else R.drawable.ic_heart
+                )
+            }
+
         }
+
     }
 
     // Group Adapter
