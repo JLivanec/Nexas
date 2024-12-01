@@ -7,5 +7,5 @@ data class Message(
     var senderID: String,
     var videoImage: String,
     var video: String,
-    var timestamp: Timestamp = Timestamp.now()
+    var timestamp: Timestamp = Timestamp.now(),
 )

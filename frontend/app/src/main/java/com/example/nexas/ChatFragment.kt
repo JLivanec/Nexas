@@ -5,24 +5,44 @@ import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.FFmpegSession
+import com.arthenica.ffmpegkit.ReturnCode
 import com.bumptech.glide.Glide
 import com.example.nexas.databinding.FragmentChatBinding
+import com.example.nexas.model.Group
+import com.example.nexas.model.Message
+import com.example.nexas.network.RetrofitClient
 import com.google.android.material.imageview.ShapeableImageView
-import com.example.nexas.model.*
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import kotlinx.coroutines.*
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
 
 class ChatFragment : Fragment(), View.OnClickListener {
     // view binding
@@ -90,6 +110,8 @@ class ChatFragment : Fragment(), View.OnClickListener {
             binding.groupAvatar.setImageResource(R.drawable.account)
         binding.groupName.text = group.name
 
+        Log.d("Message", group.messages.toString())
+
         // Chat Recycler Setup
         messageRecycler = binding.messageRecycler
         adapter = ChatAdapter()
@@ -99,6 +121,8 @@ class ChatFragment : Fragment(), View.OnClickListener {
 
         return view
     }
+
+
 
     // Handles onClick Events
     override fun onClick(v: View?) {
@@ -125,6 +149,9 @@ class ChatFragment : Fragment(), View.OnClickListener {
     inner class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val avatar: ImageView = itemView.findViewById(R.id.avatar)
         private val video: ImageView = itemView.findViewById(R.id.video)
+        private val transcript: Button = itemView.findViewById(R.id.transcript)
+
+        private val builder: AlertDialog.Builder = AlertDialog.Builder(context)
 
 
         fun bind(message: Message) {
@@ -156,17 +183,97 @@ class ChatFragment : Fragment(), View.OnClickListener {
                     .into(video)
             } else
                 video.setImageResource(R.drawable.account)
+
+            transcript.setOnClickListener {
+                CoroutineScope(Dispatchers.Main).launch {
+                    transcript.isEnabled = false
+                    itemView.isEnabled = false
+                    val transcription = getTranscription(message)
+                    Log.d("Transcript", "Transcription: $transcription")
+                    builder
+                        .setTitle("Transcription")
+                        .setMessage(transcription)
+                        .setPositiveButton("Close") {_, _ ->
+                            transcript.isEnabled = true
+                            itemView.isEnabled = true
+                        }
+                        .show()
+                }
+            }
         }
     }
+    suspend fun getTranscription(message: Message): String = withContext(Dispatchers.IO) {
+//        if (message.transcription.isNotEmpty()) {
+//            Log.d("Transcript", "Already exists: ${message.transcription}")
+//            return@withContext message.transcription
+//        }
+
+        val storage = FirebaseStorage.getInstance()
+        val storageRef = storage.getReferenceFromUrl(message.video)
+
+        val videoFile = File.createTempFile(message.id, ".mp4")
+        val audioFile = File.createTempFile(message.id, ".mp3")
+
+        // Download the video file
+        storageRef.downloadToFile(videoFile)
+        val videoFilePath = videoFile.absolutePath
+
+        // Convert video to audio
+        convertVideoToAudio(videoFilePath, audioFile)
+
+        // Transcribe the audio file
+        transcribeAudioFile(audioFile)
+    }
+
+    private suspend fun StorageReference.downloadToFile(file: File): Unit = suspendCancellableCoroutine { cont ->
+        getFile(file)
+            .addOnSuccessListener { cont.resume(Unit) }
+            .addOnFailureListener { cont.resumeWithException(it) }
+    }
+
+    private suspend fun convertVideoToAudio(videoPath: String, audioFile: File): Unit = suspendCancellableCoroutine { cont ->
+        val command = arrayOf("-y", "-i", videoPath, "-q:a", "0", "-map", "a", audioFile.absolutePath)
+        FFmpegKit.executeAsync(command.joinToString(" ")) { session ->
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                Log.d("Transcript", "Audio conversion successful")
+                cont.resume(Unit)
+            } else {
+                Log.d("Transcript", "Audio conversion failed")
+                cont.resumeWithException(RuntimeException("FFmpeg conversion failed"))
+            }
+        }
+    }
+
+    private suspend fun transcribeAudioFile(mp3File: File): String {
+        val fileRequestBody = RequestBody.create("audio/mpeg".toMediaTypeOrNull(), mp3File)
+        val filePart = MultipartBody.Part.createFormData("file", mp3File.name, fileRequestBody)
+        val modelRequestBody = RequestBody.create("text/plain".toMediaTypeOrNull(), "whisper-1")
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.openAIService.transcribeAudio(filePart, modelRequestBody)
+                if (response.isSuccessful) {
+                    response.body()?.text ?: "Empty transcription"
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.d("Transcript", "Error: ${response.code()} - $errorBody")
+                    "Error getting transcript"
+                }
+            } catch (e: Exception) {
+                Log.d("Transcript", "Error: ${e.message}")
+                "Error getting transcript"
+            }
+        }
+    }
+
 
     // Group Adapter
     inner class ChatAdapter : RecyclerView.Adapter<ChatViewHolder>() {
         private var messages = mutableListOf<Message>()
-
         init {
             messages = group.messages?.toMutableList() ?: mutableListOf<Message>()
+            Log.d("Messages", messages.toString())
         }
-
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
             val layoutId = when (viewType) {
                 VIEW_TYPE_SENT -> R.layout.sent_message

@@ -108,5 +108,9 @@ dependencies {
 
     implementation(libs.lifecycle.viewmodel.ktx)
 
+    implementation(libs.ffmpeg.kit.full)
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation("com.squareup.okhttp3:okhttp:4.9.0")
 
 }
