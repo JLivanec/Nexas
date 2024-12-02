@@ -1,5 +1,6 @@
 package com.example.nexas
 
+import NotificationHelper
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -14,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import androidx.core.content.ContentProviderCompat.requireContext
 
 
 class ViewModel(application: Application) : AndroidViewModel(application) {
@@ -196,9 +198,14 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun notification(senderId: String, thumbnail: String) {
-        //TODO: build out notification functionality
-        Toast.makeText(getApplication(), "New message from $senderId: $thumbnail", Toast.LENGTH_SHORT).show()
+        val notificationHelper = NotificationHelper(getApplication<Application>().applicationContext)
+        val title = "New message received"
+        val message = "Message from $senderId: ${if (thumbnail != "none") "Image attached" else "No image"}"
+
+        // Use NotificationHelper to send a notification
+        notificationHelper.sendNotification(title, message)
     }
+
 
     suspend fun autoLogin(): Boolean {
         val tempProfile = fb.loggedIn()
