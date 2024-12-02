@@ -129,6 +129,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
 
         private val heartButton: ImageView = itemView.findViewById(R.id.heartButton)
         private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
+        private val heartLayout: View = itemView.findViewById(R.id.heartLayout)
 
 
         fun bind(message: Message) {
@@ -168,7 +169,7 @@ class ChatFragment : Fragment(), View.OnClickListener {
                 if (isLikedByCurrentUser) R.drawable.ic_heart_checked else R.drawable.ic_heart
             )
 
-            heartButton.setOnClickListener {
+            heartLayout.setOnClickListener {
                 if (isLikedByCurrentUser) {
                     // Unlike the message
                     model.unlikeMessage(groupId, message.id)
