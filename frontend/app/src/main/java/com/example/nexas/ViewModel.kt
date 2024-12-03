@@ -225,6 +225,41 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         fb.logout()
     }
 
+    fun likeMessage(groupId: String, messageId: String) {
+        viewModelScope.launch {
+            try {
+                fb.likeMessage(groupId, messageId, myProfile.id)
+                Log.d("ViewModel", "Message $messageId liked by ${myProfile.id}")
+            } catch (e: Exception) {
+                Log.e("ViewModel", "Error liking message $messageId", e)
+            }
+        }
+    }
+
+    fun unlikeMessage(groupId: String, messageId: String) {
+        viewModelScope.launch {
+            try {
+                fb.unlikeMessage(groupId, messageId, myProfile.id)
+                Log.d("ViewModel", "Message $messageId unliked by ${myProfile.id}")
+            } catch (e: Exception) {
+                Log.e("ViewModel", "Error unliking message $messageId", e)
+            }
+        }
+    }
+
+    fun fetchLikedBy(groupId: String, messageId: String, onResult: (List<String>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val likedBy = fb.getLikes(groupId, messageId)
+                onResult(likedBy)
+            } catch (e: Exception) {
+                Log.e("ViewModel", "Error fetching likedBy for message $messageId", e)
+                onResult(emptyList())
+            }
+        }
+    }
+
+
     override fun onCleared() {
         super.onCleared()
     }

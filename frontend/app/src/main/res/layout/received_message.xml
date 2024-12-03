@@ -1,46 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-xmlns:app="http://schemas.android.com/apk/res-auto"
-xmlns:tools="http://schemas.android.com/tools"
-android:layout_width="match_parent"
-android:layout_height="wrap_content">
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
 
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/video"
+        android:layout_width="108dp"
+        android:layout_height="192dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="24dp"
+        android:layout_marginStart="16dp"
+        android:alpha="0.4"
+        android:scaleType="fitXY"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/avatar"
+        app:layout_constraintTop_toTopOf="parent"
+        app:shapeAppearanceOverlay="@style/RoundedSquare"
+        tools:srcCompat="@tools:sample/avatars" />
 
-<com.google.android.material.imageview.ShapeableImageView
-    android:id="@+id/video"
-    android:layout_width="108dp"
-    android:layout_height="192dp"
-    android:layout_marginTop="16dp"
-    android:layout_marginBottom="24dp"
-    android:layout_marginStart="16dp"
-    android:alpha="0.4"
-    android:scaleType="fitXY"
-    app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintStart_toEndOf="@+id/avatar"
-    app:layout_constraintTop_toTopOf="parent"
-    app:shapeAppearanceOverlay="@style/RoundedSquare"
-    tools:srcCompat="@tools:sample/avatars" />
+    <ImageView
+        android:id="@+id/playImage"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toBottomOf="@+id/video"
+        app:layout_constraintEnd_toEndOf="@+id/video"
+        app:layout_constraintStart_toStartOf="@+id/video"
+        app:layout_constraintTop_toTopOf="@+id/video"
+        app:srcCompat="@android:drawable/ic_media_play"
+        app:tint="@color/mint" />
 
-<ImageView
-    android:id="@+id/playImage"
-    android:layout_width="64dp"
-    android:layout_height="64dp"
-    android:background="@android:color/transparent"
-    app:layout_constraintBottom_toBottomOf="@+id/video"
-    app:layout_constraintEnd_toEndOf="@+id/video"
-    app:layout_constraintStart_toStartOf="@+id/video"
-    app:layout_constraintTop_toTopOf="@+id/video"
-    app:srcCompat="@android:drawable/ic_media_play"
-    app:tint="@color/mint" />
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/avatar"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_margin="8dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:shapeAppearanceOverlay="@style/Circular"
+        app:srcCompat="@drawable/account" />
 
-<com.google.android.material.imageview.ShapeableImageView
-    android:id="@+id/avatar"
-    android:layout_width="32dp"
-    android:layout_height="32dp"
-    android:layout_margin="8dp"
-    android:background="@android:color/transparent"
-    app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    app:shapeAppearanceOverlay="@style/Circular"
-    app:srcCompat="@drawable/account" />
+    <LinearLayout
+        android:id="@+id/heartLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="4dp"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="@id/video"
+        app:layout_constraintEnd_toEndOf="@id/video">
+
+        <ImageView
+            android:id="@+id/heartButton"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_heart"
+            app:tint="@color/red"
+            android:contentDescription="Heart button" />
+
+        <TextView
+            android:id="@+id/likeCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="0"
+            android:textSize="12sp"
+            android:textColor="@color/black"
+            android:shadowColor="@color/white"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="2"/>
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
