@@ -44,6 +44,37 @@
         app:shapeAppearanceOverlay="@style/Circular"
         app:srcCompat="@drawable/account" />
 
+    <LinearLayout
+        android:id="@+id/heartLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="@id/video"
+        app:layout_constraintEnd_toEndOf="@id/video">
+
+        <ImageView
+            android:id="@+id/heartButton"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_heart"
+            app:tint="@color/red"
+            android:contentDescription="Heart button" />
+
+        <TextView
+            android:id="@+id/likeCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="0"
+            android:textSize="12sp"
+            android:textColor="@color/black"
+            android:shadowColor="@color/white"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="2" />
+    </LinearLayout>
+
     <Button
         android:id="@+id/transcript"
         android:layout_width="wrap_content"

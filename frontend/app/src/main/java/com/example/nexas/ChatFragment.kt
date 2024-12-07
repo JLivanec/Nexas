@@ -12,6 +12,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -153,6 +154,10 @@ class ChatFragment : Fragment(), View.OnClickListener {
 
         private val builder: AlertDialog.Builder = AlertDialog.Builder(context)
 
+        private val heartButton: ImageView = itemView.findViewById(R.id.heartButton)
+        private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
+        private val heartLayout: View = itemView.findViewById(R.id.heartLayout)
+
 
         fun bind(message: Message) {
             itemView.setOnClickListener {
@@ -184,6 +189,35 @@ class ChatFragment : Fragment(), View.OnClickListener {
             } else
                 video.setImageResource(R.drawable.account)
 
+            var isLikedByCurrentUser = message.likedBy.contains(model.myProfile.id)
+
+            likeCount.text = "${message.likedBy.size}"
+            heartButton.setImageResource(
+                if (isLikedByCurrentUser) R.drawable.ic_heart_checked else R.drawable.ic_heart
+            )
+
+            heartLayout.setOnClickListener {
+                if (isLikedByCurrentUser) {
+                    // Unlike the message
+                    model.unlikeMessage(groupId, message.id)
+                    message.likedBy.remove(model.myProfile.id)
+                    isLikedByCurrentUser = false
+                    Log.d("ChatViewHolder", "Unliked UserID: ${model.myProfile.id}")
+                } else {
+                    // Like the message
+                    model.likeMessage(groupId, message.id)
+                    message.likedBy.add(model.myProfile.id)
+                    isLikedByCurrentUser = true
+                    Log.d("ChatViewHolder", "liked UserID: ${model.myProfile.id}")
+                }
+                Log.d("ChatViewHolder", "Updated likedBy List: ${message.likedBy}")
+
+                likeCount.text = "${message.likedBy.size}"
+                heartButton.setImageResource(
+                    if (message.likedBy.contains(model.myProfile.id)) R.drawable.ic_heart_checked else R.drawable.ic_heart
+                )
+            }
+
             transcript.setOnClickListener {
                 CoroutineScope(Dispatchers.Main).launch {
                     transcript.isEnabled = false
@@ -200,8 +234,10 @@ class ChatFragment : Fragment(), View.OnClickListener {
                         .show()
                 }
             }
+
         }
     }
+    
     suspend fun getTranscription(message: Message): String = withContext(Dispatchers.IO) {
 //        if (message.transcription.isNotEmpty()) {
 //            Log.d("Transcript", "Already exists: ${message.transcription}")

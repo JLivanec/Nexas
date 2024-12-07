@@ -1,5 +1,6 @@
 package com.example.nexas
 
+import NotificationHelper
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -16,5 +17,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         viewModel = ViewModelProvider(this).get(ViewModel::class.java)
         setContentView(binding.root)
+
+        NotificationHelper(this).requestNotificationPermission(this)
     }
 }

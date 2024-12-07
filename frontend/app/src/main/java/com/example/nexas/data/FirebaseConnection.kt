@@ -285,12 +285,14 @@ class FirebaseConnection() {
                 val videoImage = messageDoc.getString("videoImage") ?: return@mapNotNull null
                 val video = messageDoc.getString("video") ?: return@mapNotNull null
                 val timestamp = messageDoc.getTimestamp("timestamp") ?: return@mapNotNull null
+                val likedBy = (messageDoc["likedBy"] as? List<String>)?.toMutableList() ?: mutableListOf()
                 Message(
                     id = id,
                     senderID = senderID,
                     videoImage = videoImage,
                     video = video,
-                    timestamp = timestamp
+                    timestamp = timestamp,
+                    likedBy = likedBy
                 )
 
             }
@@ -302,6 +304,52 @@ class FirebaseConnection() {
 
         Log.d("FirebaseConnection", "Fetched my groups: ${groups.size}")
         return groups
+    }
+
+    suspend fun likeMessage(groupId: String, messageId: String, userId: String) {
+        try {
+            db.collection("groups")
+                .document(groupId)
+                .collection("messages")
+                .document(messageId)
+                .update("likedBy", FieldValue.arrayUnion(userId))
+                .await()
+            Log.d("Chat", "User $userId liked message $messageId in group $groupId")
+        } catch (e: Exception) {
+            Log.e("Chat", "Error liking message $messageId", e)
+        }
+    }
+
+    suspend fun unlikeMessage(groupId: String, messageId: String, userId: String) {
+        try {
+            db.collection("groups")
+                .document(groupId)
+                .collection("messages")
+                .document(messageId)
+                .update("likedBy", FieldValue.arrayRemove(userId))
+                .await()
+            Log.d("Chat", "User $userId unliked message $messageId in group $groupId")
+        } catch (e: Exception) {
+            Log.e("Chat", "Error unliking message $messageId", e)
+        }
+    }
+
+    suspend fun getLikes(groupId: String, messageId: String): List<String> {
+        return try {
+            val messageDoc = db.collection("groups")
+                .document(groupId)
+                .collection("messages")
+                .document(messageId)
+                .get()
+                .await()
+
+            val likedBy = messageDoc["likedBy"] as? List<String> ?: emptyList()
+            Log.d("Chat", "Retrieved likes for message $messageId: $likedBy")
+            likedBy
+        } catch (e: Exception) {
+            Log.e("Chat", "Error retrieving likes for message $messageId", e)
+            emptyList()
+        }
     }
 
     suspend fun getProfile(userID: String): Profile? {

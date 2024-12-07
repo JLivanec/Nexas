@@ -9,13 +9,11 @@ import com.example.nexas.model.Group
 import com.example.nexas.model.Profile
 import com.example.nexas.model.Message
 import com.google.firebase.firestore.GeoPoint
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import android.widget.Toast
-import androidx.core.content.ContentProviderCompat.requireContext
+
 
 
 class ViewModel(application: Application) : AndroidViewModel(application) {
@@ -26,7 +24,7 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     private var myGroups = listOf<Group>()
     private var previousMessages = listOf<Message>()
     private val _messages = MutableLiveData<List<Message>>()
-    val messages: LiveData<List<Message>> get() = _messages
+    //val messages: LiveData<List<Message>> get() = _messages
     private var isFirstMessageCheck = true
 
     fun getGroups(): List<Group> {
@@ -187,7 +185,7 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
                             previousMessages = newMessages
                             _messages.postValue(newMessages)
                             newMessagesToNotify.forEach { message ->
-                                notification(message.senderID, message.videoImage ?: "none")
+                                notification(message.senderID)
                             }
                         }
                     }
@@ -197,10 +195,16 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun notification(senderId: String, thumbnail: String) {
+    fun notification(senderId: String) {
         val notificationHelper = NotificationHelper(getApplication<Application>().applicationContext)
+
+        // Fetch the sender's username
+        val senderProfile = findProfileById(senderId)
+        val senderUsername = senderProfile?.username ?: "Unknown"
+        //val groupName = findGroupById(senderId)?.name ?: "Unknown"
+
         val title = "New message received"
-        val message = "Message from $senderId: ${if (thumbnail != "none") "Image attached" else "No image"}"
+        val message = "You've got a message from $senderUsername"
 
         // Use NotificationHelper to send a notification
         notificationHelper.sendNotification(title, message)
@@ -220,6 +224,41 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     fun logout() {
         fb.logout()
     }
+
+    fun likeMessage(groupId: String, messageId: String) {
+        viewModelScope.launch {
+            try {
+                fb.likeMessage(groupId, messageId, myProfile.id)
+                Log.d("ViewModel", "Message $messageId liked by ${myProfile.id}")
+            } catch (e: Exception) {
+                Log.e("ViewModel", "Error liking message $messageId", e)
+            }
+        }
+    }
+
+    fun unlikeMessage(groupId: String, messageId: String) {
+        viewModelScope.launch {
+            try {
+                fb.unlikeMessage(groupId, messageId, myProfile.id)
+                Log.d("ViewModel", "Message $messageId unliked by ${myProfile.id}")
+            } catch (e: Exception) {
+                Log.e("ViewModel", "Error unliking message $messageId", e)
+            }
+        }
+    }
+
+    fun fetchLikedBy(groupId: String, messageId: String, onResult: (List<String>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val likedBy = fb.getLikes(groupId, messageId)
+                onResult(likedBy)
+            } catch (e: Exception) {
+                Log.e("ViewModel", "Error fetching likedBy for message $messageId", e)
+                onResult(emptyList())
+            }
+        }
+    }
+
 
     override fun onCleared() {
         super.onCleared()
