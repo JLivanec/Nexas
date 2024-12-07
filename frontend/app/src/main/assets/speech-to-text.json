@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "hazel-airlock-443020-p1",
+  "private_key_id": "b3424879d67ea789f869cd8ead71966b71814335",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDLCBz1PWsqGkOe\nnyXo/Z3oRqaUpIIaTmkvFqVSEE1F4bMe6W8Jo/EV2eqIX/c8r1e1dpBvq/QCv6ak\nRwUpHR3OGpzcx5SsAth1/0Llj3IZ0OsRNAWOzSWUqk9wL6LvrKc0n8UlTSY37rcR\nSk+uQrJEN7UDXLyJcvTnjHutctlieTS0I51EJgd8uK2pyThIYY5aVvm//XvD/LEW\nOiYWqzlQDRWpGfWynqqyVs6k8MoBkQJj741Mh9qjdRjG5kcqQPYHAIeTv9pusdk6\nRhPph47vJlvYp5cMAF6Kdhfupfe2Bv5JNEOUJgLQ97/rl6+EoSRKhajA04Y+We36\nJtbbJJPrAgMBAAECggEANa4Z9e88t7+E9FnwrIbtqp2PaoqKSYlEvyn2INnljF3t\nvXULohlh4xygKVlyJW3Yu0YzTwtAMz/Xv+R1JVco67bWlXsBQG9qKtyII+jGyrOV\nixFdjNGJp6JV6Xv20PatqLi7Z67btXsclOo4YgMJXgb6iX6J7K9juBrJEmVku2eG\nd48GScTkAO+q0IMtbnnQm5NvdzS0FhG/M1QMQ7y0Xsbfii8BR1ls9KGiqL3mXc+/\n5dw0QsHIjyJdAXSfJrT8rCWsATUClh2sNSQWA1cGup7uz4iTTNmkXh0QEbSgbr2B\nNjBU5CNnI9lChOGltohnXbdpHRqh2TnFYr4ZGAiuVQKBgQD4wbRYElHN66+bZpAv\nf+jQ0ks8f6UzwHfnBmr4YKEPPV4QixWAv4Nqwyr5cgXFD7ccMhszm7mfK/0j4Qgo\ngEFERalR4rmikQc2dhf4EGklocmUUzQ7EyXyL6Uy92f2vhu7IDWyTJL38vpH2qz5\nCpD1M8+eolFucSQksX2/somOVQKBgQDQ8ZAnDQnheHS99VVT5neOo8Td5nanGpdR\nzldUL7Dh22FXBkv4z8GSvinx3rvX+9RVZ+TpEyoI1jHMnIEk5rvHdOELHTGCeyul\nkZxu0FH3A6EeU969meKvq2zRkhhZhQN4eFEDhYSthR/wbe7KAXHlBhuyKSY8LYOU\nA+bP5pNZPwKBgC0TzP54s2JBZ10dxNsWrrXIpeGcr+8k3ZV70D6aJBWC5VzSF19x\nVPsvysXRJ8KCCoiNe+hqO8TgT8sEqFnOhAU/KmOwVjtjVI9F7yoAr00meETsnvZl\njebJQ4Js2uYXpSbPu2tH/Qn5eekzc0zd4U7NyL3SZDdDQW10zHjEfbDRAoGAGfR3\n8LHo8U4ySkqIf/SYE2r6kIoJYTanZ20XYgjOky/aRqIsm8rLA/yFX1tIwEqzFKzk\nPaO4zAI3i3BBhqD24I7/SY8l0EyWnmmZIhbUp7eWsxq+B5VvGF1WFi5sweoJBVUE\n00gptBheYFJ3oDZPvKBmnloIOt94gdF+QYMl+KcCgYAs7RFdn9NtAL/J3MDqTwg3\n4zUgRUqT8fVixH9Wfs0qUydZTZ9IDc7fnihfW9P7OdO6R4zHJ7qX5faA9EyLWcnr\n0CyjWt5zX2wHkEugl5Aem7rw7we+Y7AVP1bCSuWWfiJeqKGYnMCZoOVvL8Lw2qbp\nCDNzVeaIbXYXeCyPlVsRwQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "speech-to-text@hazel-airlock-443020-p1.iam.gserviceaccount.com",
+  "client_id": "111319033369013461207",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/speech-to-text%40hazel-airlock-443020-p1.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
