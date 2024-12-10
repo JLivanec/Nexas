@@ -169,8 +169,8 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             while (true) {
                 try {
-                    val myGroups = fb.getMyGroups()
-                    val newMessages = myGroups.flatMap {it.messages ?: emptyList()}
+                    val myGroupsUpdate = fb.getMyGroups()
+                    val newMessages = myGroupsUpdate.flatMap {it.messages ?: emptyList()}
 
                     // check to see if it's the first loop, if so, don't notify for non-new
                     if (isFirstMessageCheck) {
@@ -182,6 +182,7 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
                             message.senderID != myProfile.id && !previousMessages.contains(message)
                         }
                         if (newMessagesToNotify.isNotEmpty()) {
+                            myGroups = myGroupsUpdate
                             previousMessages = newMessages
                             _messages.postValue(newMessages)
                             newMessagesToNotify.forEach { message ->
