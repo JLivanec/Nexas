@@ -27,7 +27,8 @@ Nexas revolutionizes user discovery by leveraging backend algorithms to connect 
 - **Backend User Discovery**: Unlike traditional apps where users must actively search for connections, Nexas automates the discovery process based on interests, fostering organic community-building.
 
 ## DEMO
-<iframe width="640" height="360" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
+[![Watch the video](https://img.youtube.com/vi/T-D1KVIuvjA/maxresdefault.jpg)](https://youtu.be/T-D1KVIuvjA)
+
 
 ---
 
