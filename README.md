@@ -26,6 +26,9 @@ Nexas revolutionizes user discovery by leveraging backend algorithms to connect 
 - **Video-Centric Focus**: By prioritizing video messaging, Nexas offers a streamlined communication experience tailored to modern, fast-paced interactions.
 - **Backend User Discovery**: Unlike traditional apps where users must actively search for connections, Nexas automates the discovery process based on interests, fostering organic community-building.
 
+## DEMO
+<iframe width="640" height="360" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
+
 ---
 
 Nexas simplifies the messaging experience by prioritizing video communication, offering users an easy way to connect with like-minded people, and ensuring privacy and convenience through innovative features.
