@@ -8,5 +8,6 @@ data class Message(
     var videoImage: String,
     var video: String,
     var timestamp: Timestamp = Timestamp.now(),
-    val likedBy: MutableList<String> = mutableListOf()
+    val likedBy: MutableList<String> = mutableListOf(),
+    var pinned: Boolean
 )

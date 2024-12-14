@@ -24,7 +24,7 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     private var myGroups = listOf<Group>()
     private var previousMessages = listOf<Message>()
     private val _messages = MutableLiveData<List<Message>>()
-    //val messages: LiveData<List<Message>> get() = _messages
+    //    val messages: LiveData<List<Message>> get() = _messages
     private var isFirstMessageCheck = true
 
     fun getGroups(): List<Group> {
@@ -142,6 +142,11 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    suspend fun pinMessage(messageId: String, groupId: String) {
+        Log.d("PINNED", _messages.toString())
+        fb.pinVideo(groupId, messageId)
+    }
+
     suspend fun setUserLocation(latLng: com.google.android.gms.maps.model.LatLng) {
         val geoPoint = GeoPoint(latLng.latitude, latLng.longitude)
         fb.setUserLocation(geoPoint)
@@ -196,6 +201,14 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    suspend fun fetchMessages() {
+        val myGroups = fb.getMyGroups()
+        val newMessages = myGroups.flatMap {it.messages ?: emptyList()}
+        previousMessages = newMessages
+        _messages.postValue(newMessages)
+        Log.d("PINNED", "Updating messages")
+    }
+
     fun notification(senderId: String) {
         val notificationHelper = NotificationHelper(getApplication<Application>().applicationContext)
 
@@ -224,6 +237,10 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logout() {
         fb.logout()
+    }
+
+    suspend fun updateGroup(groupId: String, groupName: String, groupDescription: String) {
+        fb.updateGroup(groupId, groupName, groupDescription)
     }
 
     fun likeMessage(groupId: String, messageId: String) {
