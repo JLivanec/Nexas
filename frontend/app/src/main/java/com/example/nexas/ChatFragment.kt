@@ -3,12 +3,15 @@ package com.example.nexas
 import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.PorterDuff
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -29,6 +32,7 @@ import com.example.nexas.databinding.FragmentChatBinding
 import com.example.nexas.model.Group
 import com.example.nexas.model.Message
 import com.example.nexas.network.RetrofitClient
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.imageview.ShapeableImageView
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -61,12 +65,18 @@ class ChatFragment : Fragment(), View.OnClickListener {
     private lateinit var backButton: ImageButton
     private lateinit var groupHeader: LinearLayout
     private lateinit var recordButton: ShapeableImageView
+    private lateinit var groupHeaderTitle: TextView
 
     private lateinit var messageRecycler: RecyclerView
     private lateinit var adapter: ChatAdapter
 
     private lateinit var groupId: String
     private lateinit var group: Group
+
+    private lateinit var showPinned: ImageView
+    private var showPinnedBool = false
+
+    private lateinit var edit: ImageView
 
     private var cameraPermissionForScreen = true
 
@@ -88,6 +98,9 @@ class ChatFragment : Fragment(), View.OnClickListener {
         backButton = binding.backButton
         groupHeader = binding.groupHeader
         recordButton = binding.recordButton
+        showPinned = binding.showPinned
+        edit = binding.edit
+        groupHeaderTitle = binding.groupName
 
         backButton.setOnClickListener(this)
         groupHeader.setOnClickListener(this)
@@ -111,7 +124,54 @@ class ChatFragment : Fragment(), View.OnClickListener {
             binding.groupAvatar.setImageResource(R.drawable.account)
         binding.groupName.text = group.name
 
-        Log.d("Message", group.messages.toString())
+        showPinned.isEnabled = group.messages?.any { it.pinned } ?: false
+
+        showPinned.setOnClickListener {
+            showPinnedBool = !showPinnedBool
+            if(showPinnedBool) {
+                showPinned.setColorFilter(ContextCompat.getColor(requireContext(), R.color.mint), PorterDuff.Mode.SRC_IN)
+            } else {
+                showPinned.setColorFilter(ContextCompat.getColor(requireContext(), R.color.white), PorterDuff.Mode.SRC_IN)
+            }
+            messageRecycler.setAdapter(null)
+            messageRecycler.setLayoutManager(null)
+            messageRecycler.setAdapter(ChatAdapter())
+            messageRecycler.setLayoutManager(LinearLayoutManager(requireContext()))
+//            adapter.notifyDataSetChanged();
+            adapter = messageRecycler.adapter as ChatAdapter
+        }
+
+        edit.setOnClickListener {
+            val bottomSheetDialog = BottomSheetDialog(requireContext())
+            bottomSheetDialog.setContentView(R.layout.edit_group_data)
+            bottomSheetDialog.findViewById<View>(R.id.modal)?.setBackgroundColor(Color.BLACK)
+
+            val saveButton: Button? = bottomSheetDialog.findViewById(R.id.save)
+            val cancelButton: Button? = bottomSheetDialog.findViewById(R.id.cancel)
+            val groupName: EditText? = bottomSheetDialog.findViewById(R.id.group_name)
+            val groupDescription: EditText? = bottomSheetDialog.findViewById(R.id.group_description)
+
+            groupName?.setText(group.name)
+            groupDescription?.setText(group.description)
+
+            cancelButton?.setOnClickListener {
+                bottomSheetDialog.dismiss()
+            }
+
+            saveButton?.setOnClickListener {
+                CoroutineScope(Dispatchers.Main).launch {
+                    model.updateGroup(
+                        groupId, groupName?.text.toString(),
+                        groupDescription?.text.toString()
+                    )
+                    bottomSheetDialog.dismiss()
+                    group.name = groupName?.text.toString()
+                    group.description = groupDescription?.text.toString()
+                    groupHeaderTitle.text = groupName?.text.toString()
+                }
+            }
+            bottomSheetDialog.show()
+        }
 
         // Chat Recycler Setup
         messageRecycler = binding.messageRecycler
@@ -157,9 +217,15 @@ class ChatFragment : Fragment(), View.OnClickListener {
         private val heartButton: ImageView = itemView.findViewById(R.id.heartButton)
         private val likeCount: TextView = itemView.findViewById(R.id.likeCount)
         private val heartLayout: View = itemView.findViewById(R.id.heartLayout)
+        private val pinned: ImageView = itemView.findViewById(R.id.pinned)
 
 
         fun bind(message: Message) {
+            if(message.pinned) {
+                pinned.setColorFilter(ContextCompat.getColor(requireContext(), R.color.mint), PorterDuff.Mode.SRC_IN)
+            } else {
+                pinned.setColorFilter(ContextCompat.getColor(requireContext(), R.color.white), PorterDuff.Mode.SRC_IN)
+            }
             itemView.setOnClickListener {
                 findNavController().navigate(ChatFragmentDirections.actionChatFragmentToWatchFragment(
                     videoImageURL = message.videoImage,
@@ -223,7 +289,6 @@ class ChatFragment : Fragment(), View.OnClickListener {
                     transcript.isEnabled = false
                     itemView.isEnabled = false
                     val transcription = getTranscription(message)
-                    Log.d("Transcript", "Transcription: $transcription")
                     builder
                         .setTitle("Transcription")
                         .setMessage(transcription)
@@ -235,9 +300,19 @@ class ChatFragment : Fragment(), View.OnClickListener {
                 }
             }
 
+            pinned.setOnClickListener {
+                CoroutineScope(Dispatchers.Main).launch {
+                    model.pinMessage(message.id, groupId)
+                    model.fetchMessages()
+                    group.messages?.forEach{it.pinned = false}
+                    message.pinned = true
+                    adapter.notifyDataSetChanged()
+                }
+            }
+
         }
     }
-    
+
     suspend fun getTranscription(message: Message): String = withContext(Dispatchers.IO) {
 //        if (message.transcription.isNotEmpty()) {
 //            Log.d("Transcript", "Already exists: ${message.transcription}")
@@ -307,8 +382,11 @@ class ChatFragment : Fragment(), View.OnClickListener {
     inner class ChatAdapter : RecyclerView.Adapter<ChatViewHolder>() {
         private var messages = mutableListOf<Message>()
         init {
-            messages = group.messages?.toMutableList() ?: mutableListOf<Message>()
-            Log.d("Messages", messages.toString())
+            messages = if(showPinnedBool) {
+                group.messages?.filter { it.pinned }?.toMutableList() ?: mutableListOf<Message>()
+            } else {
+                group.messages?.toMutableList() ?: mutableListOf<Message>()
+            }
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
             val layoutId = when (viewType) {

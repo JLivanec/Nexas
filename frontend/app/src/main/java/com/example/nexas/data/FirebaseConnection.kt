@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.nexas.model.Group
 import com.example.nexas.model.Message
 import com.example.nexas.model.Profile
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -12,6 +13,7 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.tasks.await
+import java.time.Instant
 
 class FirebaseConnection() {
 
@@ -172,6 +174,30 @@ class FirebaseConnection() {
         }
     }
 
+    suspend fun updateGroup(groupId: String, groupName: String, groupDescription: String) {
+        try {
+
+            val groupData = hashMapOf(
+                "name" to groupName,
+                "description" to groupDescription
+            )
+
+            db.collection("groups")
+                .document(groupId)
+                .update(groupData as Map<String, Any>)
+                .addOnSuccessListener {
+                    Log.d("FirebaseConnection", "Group successfully updated!")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("FirebaseConnection", "Error updating group", e)
+                }
+
+        } catch (e: Exception) {
+            Log.e("FirebaseConnection", "Error updating group", e)
+            throw e // Re-throw the exception
+        }
+    }
+
     // Fetches groups based on user id
     suspend fun getGroups(): List<Group> {
         val querySnapshot = db.collection("groups")
@@ -278,6 +304,8 @@ class FirebaseConnection() {
                 .get()
                 .await()
 
+            Log.d("CONNECTION SNAPSHOT", messagesSnapshot.documents.toString())
+
             // Manually create Message objects
             val messages = messagesSnapshot.documents.mapNotNull { messageDoc ->
                 val id = messageDoc.id
@@ -286,13 +314,15 @@ class FirebaseConnection() {
                 val video = messageDoc.getString("video") ?: return@mapNotNull null
                 val timestamp = messageDoc.getTimestamp("timestamp") ?: return@mapNotNull null
                 val likedBy = (messageDoc["likedBy"] as? List<String>)?.toMutableList() ?: mutableListOf()
+                val pinned = messageDoc.getBoolean("pinned") ?: false
                 Message(
                     id = id,
                     senderID = senderID,
                     videoImage = videoImage,
                     video = video,
                     timestamp = timestamp,
-                    likedBy = likedBy
+                    likedBy = likedBy,
+                    pinned = pinned
                 )
 
             }
@@ -331,6 +361,46 @@ class FirebaseConnection() {
             Log.d("Chat", "User $userId unliked message $messageId in group $groupId")
         } catch (e: Exception) {
             Log.e("Chat", "Error unliking message $messageId", e)
+        }
+    }
+
+    suspend fun pinVideo(groupId: String, messageId: String) {
+        try {
+            val messagesRef = db.collection("groups")
+                .document(groupId)
+                .collection("messages")
+
+            // Fetch all messages in the group
+            val messageSnapshot = messagesRef.get().await()
+
+            // Use a batch to perform multiple updates atomically
+            val batch = db.batch()
+
+            // Iterate over each message
+            for (messageDoc in messageSnapshot.documents) {
+                val isClickedMessage = messageDoc.id == messageId
+                val currentPinned = messageDoc.getBoolean("pinned") ?: false
+
+                // Update only if the pinned status needs to be changed
+                if (isClickedMessage && !currentPinned) {
+                    // Set the clicked message's pinned attribute to true
+                    Log.d("PINNED", "Pinning message true")
+                    batch.update(messageDoc.reference, "pinned", true)
+                } else if (!isClickedMessage && currentPinned) {
+                    // Set all other messages' pinned attribute to false
+                    Log.d("PINNED", "Pinning message false")
+                    batch.update(messageDoc.reference, "pinned", false)
+                }
+            }
+
+            // Commit the batch operation
+            batch.commit().await()
+
+
+            Log.d("PINNED", "Pinned message updated successfully for messageId: $messageId")
+
+        } catch (e: Exception) {
+            Log.e("Chat", "Error pinning message $messageId", e)
         }
     }
 
@@ -485,7 +555,8 @@ class FirebaseConnection() {
                 id = messageId,
                 senderID = user!!.uid,
                 videoImage = videoImageUrl,
-                video = videoUrl
+                video = videoUrl,
+                pinned = false
             )
 
             // Add the message to the Firestore group messages collection
